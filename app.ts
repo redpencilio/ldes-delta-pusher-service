@@ -2,6 +2,8 @@ import { app, query, update, sparql, errorHandler } from "mu";
 import bodyParser from "body-parser";
 import fetch from "node-fetch";
 
+console.log(process.env);
+
 const APPLICATION_GRAPH = "http://mu.semte.ch/graphs/public";
 app.use(
 	bodyParser.json({
@@ -29,25 +31,21 @@ function toString(triple) {
 async function sendLDESRequest(uri, body) {
 	const queryParams = new URLSearchParams({
 		resource: uri,
-		stream: "http://example.org/post-stream",
-		"relation-path": "https://schema.org/dateCreated",
-		fragmenter: "time-fragmenter",
+		stream: process.env.LDES_STREAM,
+		"relation-path": process.env.LDES_RELATION_PATH,
+		fragmenter: process.env.LDES_FRAGMENTER,
 	});
 
-	return fetch(
-		"http://ldes-time-fragmenter:3000/social-media-posts?" + queryParams,
-		{
-			method: "POST",
-			headers: {
-				"Content-Type": "text/turtle",
-			},
-			body: body,
-		}
-	);
+	return fetch(`${process.env.LDES_ENDPOINT}?` + queryParams, {
+		method: "POST",
+		headers: {
+			"Content-Type": "text/turtle",
+		},
+		body: body,
+	});
 }
 
 app.post("/publish", async function (req, res) {
-	console.log("publish");
 	for (const operation of req.body) {
 		let resource = operation.inserts;
 		if (resource) {
