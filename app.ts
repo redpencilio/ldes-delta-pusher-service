@@ -1,6 +1,5 @@
 import { app, errorHandler } from "mu";
 import bodyParser from "body-parser";
-import fetch from "node-fetch";
 import dispatch from "./dispatch";
 
 console.log(process.env);
@@ -15,10 +14,12 @@ app.use(
 );
 
 app.post("/publish", async function (req, res) {
+	console.log("publish to LDES");
 	try {
 		await dispatch(req.body);
 		res.send("Resource added to LDES");
 	} catch (e) {
+		console.error(e);
 		res.status(500).send();
 	}
 });

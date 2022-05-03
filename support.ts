@@ -1,4 +1,5 @@
 import { sparqlEscapeUri, sparqlEscapeString } from "mu";
+import fetch from "node-fetch";
 
 export function toSparqlTerm(thing): string {
 	if (thing.type == "uri") return sparqlEscapeUri(thing.value);
