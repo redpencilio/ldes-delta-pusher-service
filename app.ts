@@ -1,10 +1,9 @@
-import { app, query, update, sparql, errorHandler } from "mu";
+import { app, errorHandler } from "mu";
 import bodyParser from "body-parser";
 import fetch from "node-fetch";
 
 console.log(process.env);
 
-const APPLICATION_GRAPH = "http://mu.semte.ch/graphs/public";
 app.use(
 	bodyParser.json({
 		limit: "500mb",
@@ -46,6 +45,7 @@ async function sendLDESRequest(uri, body) {
 }
 
 app.post("/publish", async function (req, res) {
+	console.log("LDES-publish-request");
 	for (const operation of req.body) {
 		let resource = operation.inserts;
 		if (resource) {
