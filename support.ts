@@ -1,15 +1,14 @@
-function formatValue(tripleElement) {
-	if (tripleElement.type == "uri") {
-		return `<${tripleElement.value}>`;
-	} else {
-		return `"${tripleElement.value}"`;
-	}
+import { sparqlEscapeUri, sparqlEscapeString } from "mu";
+
+export function toSparqlTerm(thing): string {
+	if (thing.type == "uri") return sparqlEscapeUri(thing.value);
+	else return sparqlEscapeString(thing.value);
 }
 
-function toString(triple) {
-	return `${formatValue(triple.subject)} ${formatValue(
-		triple.predicate
-	)} ${formatValue(triple.object)}.`;
+export function toSparqlTriple(quad): string {
+	return `${toSparqlTerm(quad.subject)} ${toSparqlTerm(
+		quad.predicate
+	)} ${toSparqlTerm(quad.object)}.`;
 }
 
 async function sendLDESRequest(uri, body) {
@@ -30,12 +29,12 @@ async function sendLDESRequest(uri, body) {
 }
 
 export async function moveTriples(changesets) {
-	for (const { inserts, deletes } of changesets) {
+	for (const { inserts, _ } of changesets) {
 		if (inserts.length) {
 			let subject = inserts[0].subject.value;
 			let turtleBody = "";
 			inserts.forEach((triple) => {
-				turtleBody += toString(triple) + "\n";
+				turtleBody += toSparqlTriple(triple) + "\n";
 			});
 			let response = await sendLDESRequest(subject, turtleBody);
 			console.log(response);
