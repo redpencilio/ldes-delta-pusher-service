@@ -1,4 +1,8 @@
 {
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/redpencilio/ldes-delta-pusher-service"
+  },
   "dependencies": {
     "body-parser": "^1.20.0",
     "node-fetch": "^2.6.7"
