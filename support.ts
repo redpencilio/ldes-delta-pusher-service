@@ -1,23 +1,25 @@
+// @ts-ignore
 import { sparqlEscapeUri, sparqlEscapeString } from "mu";
 import fetch from "node-fetch";
+import { LDES_FRAGMENTER } from "./config";
+import { Changeset, Quad, Term } from "./types";
 
-export function toSparqlTerm(thing): string {
+
+export function toSparqlTerm(thing: Term): string {
 	if (thing.type == "uri") return sparqlEscapeUri(thing.value);
 	else return sparqlEscapeString(thing.value);
 }
 
-export function toSparqlTriple(quad): string {
+export function toSparqlTriple(quad: Quad): string {
 	return `${toSparqlTerm(quad.subject)} ${toSparqlTerm(
 		quad.predicate
 	)} ${toSparqlTerm(quad.object)}.`;
 }
 
-async function sendLDESRequest(uri, body) {
+async function sendLDESRequest(uri: string, body: string) {
 	const queryParams = new URLSearchParams({
 		resource: uri,
-		stream: process.env.LDES_STREAM,
-		"relation-path": process.env.LDES_RELATION_PATH,
-		fragmenter: process.env.LDES_FRAGMENTER,
+		...(LDES_FRAGMENTER && { fragmenter: LDES_FRAGMENTER })
 	});
 
 	return fetch(`${process.env.LDES_ENDPOINT}?` + queryParams, {
@@ -29,8 +31,8 @@ async function sendLDESRequest(uri, body) {
 	});
 }
 
-export async function moveTriples(changesets) {
-	for (const { inserts, _ } of changesets) {
+export async function moveTriples(changesets: Changeset[]) {
+	for (const { inserts } of changesets) {
 		if (inserts.length) {
 			let subject = inserts[0].subject.value;
 			let turtleBody = "";
@@ -38,7 +40,6 @@ export async function moveTriples(changesets) {
 				turtleBody += toSparqlTriple(triple) + "\n";
 			});
 			let response = await sendLDESRequest(subject, turtleBody);
-			console.log(response);
 		}
 	}
 }

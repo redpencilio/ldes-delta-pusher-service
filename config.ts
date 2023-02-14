@@ -1,0 +1,1 @@
+export const LDES_FRAGMENTER = process.env.LDES_FRAGMENTER as string | undefined;
