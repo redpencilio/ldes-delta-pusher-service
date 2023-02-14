@@ -1,7 +1,7 @@
 //@ts-ignore
 import { app, errorHandler } from "mu";
 import bodyParser from "body-parser";
-import dispatch from "./dispatch";
+import dispatch from "./config/dispatch";
 import type { Request, Response } from 'express';
 
 app.use(
