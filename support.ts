@@ -1,7 +1,7 @@
 // @ts-ignore
 import { sparqlEscapeUri, sparqlEscapeString } from "mu";
 import fetch from "node-fetch";
-import { LDES_FRAGMENTER } from "./config";
+import { LDES_ENDPOINT, LDES_FRAGMENTER } from "./config";
 import { Changeset, Quad, Term } from "./types";
 
 
@@ -22,7 +22,7 @@ async function sendLDESRequest(uri: string, body: string) {
 		...(LDES_FRAGMENTER && { fragmenter: LDES_FRAGMENTER })
 	});
 
-	return fetch(`${process.env.LDES_ENDPOINT}?` + queryParams, {
+	return fetch(`${LDES_ENDPOINT}?` + queryParams, {
 		method: "POST",
 		headers: {
 			"Content-Type": "text/turtle",
