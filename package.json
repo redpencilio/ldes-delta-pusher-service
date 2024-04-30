@@ -5,7 +5,8 @@
   },
   "dependencies": {
     "body-parser": "^1.20.0",
-    "node-fetch": "^2.6.7"
+    "node-fetch": "^2.6.7",
+    "@lblod/mu-auth-sudo": "^0.6.1"
   },
   "scripts": {
     "release": "release-it"
