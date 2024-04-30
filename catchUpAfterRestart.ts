@@ -166,5 +166,6 @@ export const catchUpAfterRestart = async () => {
   while (hasMoreItems) {
     hasMoreItems = await pagedCatchUp();
   }
+  status.hasCaughtUpSinceRestart = true;
   console.log("Done Catching up after restart");
 };
