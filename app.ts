@@ -50,7 +50,10 @@ app.post("/publish", async function (req: Request, res: Response) {
     const changeSets: Changeset[] = req.body;
     await dispatch(changeSets);
     await updateLastModifiedSeen(
-      changeSets[changeSets.length - 1]?.inserts || []
+      // deletes happen before inserts, so try inserts first, then deletes
+      changeSets[changeSets.length - 1]?.inserts ||
+        changeSets[changeSets.length - 1]?.deletes ||
+        []
     );
     res.send("Resource added to LDES");
   } catch (e) {

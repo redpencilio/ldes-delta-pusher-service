@@ -3,7 +3,7 @@ import { sparqlEscapeDateTime } from "mu";
 import { handlePage } from "./config/catchUp";
 import { CatchupPageItem } from "./types";
 
-const statusSubject = process.env.LDES_STATUS_SUBJECT || "ext:ldesStatus";
+const statusSubject = "ext:ldesStatus";
 const catchUpPageSize = parseInt(
   process.env.LDES_CATCH_UP_PAGE_SIZE || "1000",
   10
@@ -23,7 +23,7 @@ export const status = {
   hasCaughtUpSinceRestart: false,
 };
 
-export const storeLastModifiedSynced = async (caughtUpUntil?: Date) => {
+export async function storeLastModifiedSynced(caughtUpUntil?: Date) {
   const date = caughtUpUntil ? caughtUpUntil : new Date();
   await update(`
   PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
@@ -46,9 +46,9 @@ export const storeLastModifiedSynced = async (caughtUpUntil?: Date) => {
     }
   }
   `);
-};
+}
 
-const getStatus = async () => {
+async function getCatchupStatusFromDB() {
   const result = await query(`
   PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
   SELECT ?date
@@ -62,10 +62,10 @@ const getStatus = async () => {
   return {
     caughtUpUntil: date ? new Date(date) : null,
   };
-};
+}
 
-const hasCaughtUp = async () => {
-  const status = await getStatus();
+async function hasCaughtUp() {
+  const status = await getCatchupStatusFromDB();
   if (!status.caughtUpUntil) {
     return false;
   }
@@ -77,9 +77,9 @@ const hasCaughtUp = async () => {
     FILTER(?date > ${sparqlEscapeDateTime(status.caughtUpUntil)})
   } LIMIT 1`);
   return firstItemAfterLastSync.results.bindings.length === 0;
-};
+}
 
-const getCountOfItemsToSync = async (caughtUpUntil: Date) => {
+async function getCountOfItemsToSync(caughtUpUntil: Date) {
   const result = await query(`
   PREFIX dct: <http://purl.org/dc/terms/>
   SELECT (COUNT( DISTINCT *) as ?count) WHERE {
@@ -88,10 +88,10 @@ const getCountOfItemsToSync = async (caughtUpUntil: Date) => {
     FILTER(?date >= ${sparqlEscapeDateTime(caughtUpUntil)})
   }`);
   return parseInt(result.results.bindings[0].count.value);
-};
+}
 
-const pagedCatchUp = async () => {
-  let { caughtUpUntil } = await getStatus();
+async function pagedCatchUp() {
+  let { caughtUpUntil } = await getCatchupStatusFromDB();
 
   if (!caughtUpUntil) {
     // we missed everything, set to the beginning of time
@@ -100,10 +100,15 @@ const pagedCatchUp = async () => {
 
   caughtUpUntil = new Date(caughtUpUntil.getTime() - initialCatchUpOffset);
 
+  // we're fetching the count and then just getting the next page until we get
+  // no more items. So in theory we don't really need the count.
+  // however, it's nice to give the watchers of our logs an indication
+  // of how many items we expect
   const count = await getCountOfItemsToSync(caughtUpUntil);
   let currentOffset = 0;
   let maxDate;
-  while (currentOffset < count) {
+  let hasMoreItems = true;
+  while (hasMoreItems) {
     const page = await query(`
     PREFIX dct: <http://purl.org/dc/terms/>
     SELECT DISTINCT ?s ?date ?type WHERE {
@@ -115,32 +120,32 @@ const pagedCatchUp = async () => {
     LIMIT ${catchUpPageSize}
     OFFSET ${currentOffset}`);
 
-    maxDate =
-      page.results.bindings[page.results.bindings.length - 1]?.date?.value;
-    console.log(`Catching up until ${maxDate}: ${currentOffset}/${count}`);
-    const items = page.results.bindings.map(
-      (item) =>
-        ({
-          uri: item.s.value as string,
-          date: new Date(item.date.value),
-          type: item.type.value as string,
-        } as CatchupPageItem)
-    );
-    await handlePage(items);
-    currentOffset += catchUpPageSize;
+    if (page.results.bindings.length === 0) {
+      hasMoreItems = false;
+    } else {
+      maxDate =
+        page.results.bindings[page.results.bindings.length - 1]?.date?.value;
+      console.log(`Catching up until ${maxDate}: ${currentOffset}/${count}`);
+      const items = page.results.bindings.map(
+        (item) =>
+          ({
+            uri: item.s.value as string,
+            date: new Date(item.date.value),
+            type: item.type.value as string,
+          } as CatchupPageItem)
+      );
+      await handlePage(items);
+      // setting the last date we caught up to. This is safe because if we were
+      // to crash now and items on the next page have the same last modified as
+      // the last item on the page, we would still write all items with that same
+      // last modified to the ldes (as duplicates, which is acceptable)
+      await storeLastModifiedSynced(new Date(maxDate));
+      currentOffset += catchUpPageSize;
+    }
   }
+}
 
-  if (maxDate) {
-    // note: if somehow we end our catching up process and a new items appears with the
-    // same last modified date as the last one we processed, we will miss the items with
-    // that same modified date. Auto healing should fix this (once it exists)
-    await storeLastModifiedSynced(new Date(maxDate));
-  }
-
-  return await hasCaughtUp();
-};
-
-const waitForDb = async () => {
+async function waitForDb() {
   let dbReady = false;
   while (!dbReady) {
     try {
@@ -151,9 +156,9 @@ const waitForDb = async () => {
       await new Promise((resolve) => setTimeout(resolve, 1000));
     }
   }
-};
+}
 
-export const catchUpAfterRestart = async () => {
+export async function catchUpAfterRestart() {
   console.log("Catching up after restart");
   if (!statusGraph || statusGraph.length === 0) {
     status.hasCaughtUpSinceRestart = true;
@@ -162,10 +167,11 @@ export const catchUpAfterRestart = async () => {
 
   await waitForDb();
 
-  let hasMoreItems = true;
-  while (hasMoreItems) {
-    hasMoreItems = await pagedCatchUp();
-  }
+  await pagedCatchUp();
   status.hasCaughtUpSinceRestart = true;
+
+  // doing another run because maybe we missed a delta that came in while we
+  // were queried the items of our last page
+  await pagedCatchUp();
   console.log("Done Catching up after restart");
-};
+}

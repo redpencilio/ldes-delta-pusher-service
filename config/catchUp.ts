@@ -4,7 +4,7 @@ import { sparqlEscapeUri } from "mu";
 import { querySudo as query } from "@lblod/mu-auth-sudo";
 
 // this is a pretty naive example implementation. Your own implementation will depend on the data you want to post to LDES.
-export const handlePage = async (items: CatchupPageItem[]) => {
+export async function handlePage(items: CatchupPageItem[]) {
   const result = await query(`
     CONSTRUCT {
       ?s ?p ?o .
@@ -25,4 +25,4 @@ export const handlePage = async (items: CatchupPageItem[]) => {
   });
 
   return moveTriples([{ inserts, deletes: [] }]);
-};
+}
