@@ -9,6 +9,7 @@ import {
   storeLastModifiedSynced,
 } from "./catchUpAfterRestart";
 import { Changeset, Quad } from "./types";
+import { writeInitialState } from "./writeInitialState";
 
 app.use(
   bodyParser.json({
@@ -61,6 +62,8 @@ app.post("/publish", async function (req: Request, res: Response) {
     res.status(500).send();
   }
 });
+
+writeInitialState();
 
 catchUpAfterRestart();
 
