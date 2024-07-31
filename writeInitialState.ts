@@ -36,7 +36,10 @@ function createTtlSparqlClient(turtle = true) {
       options.requestDefaults.headers["mu-auth-allowed-groups"] = allowedGroups;
   }
 
-  return new SparqlClient(process.env.DIRECT_DB_ENDPOINT, options);
+  return new SparqlClient(
+    process.env.DIRECT_DB_ENDPOINT || "http://virtuoso:8890/sparql",
+    options
+  );
 }
 
 const ttlClient = createTtlSparqlClient();
