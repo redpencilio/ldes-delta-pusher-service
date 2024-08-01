@@ -64,7 +64,7 @@ app.post("/publish", async function (req: Request, res: Response) {
 });
 
 if (process.env.WRITE_INITIAL_STATE === "true") {
-  writeInitialState();
+  await writeInitialState();
 }
 
 catchUpAfterRestart();
