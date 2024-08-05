@@ -63,10 +63,12 @@ app.post("/publish", async function (req: Request, res: Response) {
   }
 });
 
-if (process.env.WRITE_INITIAL_STATE === "true") {
-  await writeInitialState();
-}
-
-catchUpAfterRestart();
+new Promise(async (resolve) => {
+  if (process.env.WRITE_INITIAL_STATE === "true") {
+    await writeInitialState();
+  }
+  await catchUpAfterRestart();
+  resolve(true);
+});
 
 app.use(errorHandler);
