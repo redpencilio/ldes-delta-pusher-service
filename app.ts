@@ -14,10 +14,10 @@ app.use(
   bodyParser.json({
     limit: "500mb",
     // @ts-ignore
-    type: function (req: Request) {
+    type: function(req: Request) {
       return /^application\/json/.test(req.get("content-type") as string);
     },
-  })
+  }),
 );
 
 async function updateLastModifiedSeen(quads: Quad[]) {
@@ -36,13 +36,13 @@ async function updateLastModifiedSeen(quads: Quad[]) {
   }
 }
 
-app.post("/publish", async function (req: Request, res: Response) {
+app.post("/publish", async function(req: Request, res: Response) {
   if (!status.hasCaughtUpSinceRestart) {
     // we haven't finished catching up after restarting. We'll see this change by querying the db
     res
       .status(202)
       .send(
-        "Still catching up after restart, we assume this request will be handled during catching up."
+        "Still catching up after restart, we assume this request will be handled during catching up.",
       );
     return;
   }
@@ -52,8 +52,8 @@ app.post("/publish", async function (req: Request, res: Response) {
     await updateLastModifiedSeen(
       // deletes happen before inserts, so try inserts first, then deletes
       changeSets[changeSets.length - 1]?.inserts ||
-        changeSets[changeSets.length - 1]?.deletes ||
-        []
+      changeSets[changeSets.length - 1]?.deletes ||
+      [],
     );
     res.send("Resource added to LDES");
   } catch (e) {
