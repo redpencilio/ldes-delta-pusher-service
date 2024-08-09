@@ -111,11 +111,11 @@ async function writeInitialStateForStreamAndType(ldesStream, type) {
   });
 
   let offset = 0;
-  const count = await countMatchesForType("TODO", type);
+  const count = await countMatchesForType(ldesStream, type);
 
   const filter = initialization[ldesStream]?.[type]?.filter || "";
 
-  while (offset + limit < count) {
+  while (offset < count) {
     const res = await ttlClient
       .query(
         `
@@ -129,10 +129,10 @@ async function writeInitialStateForStreamAndType(ldesStream, type) {
         ?versionedS <http://www.w3.org/ns/prov#generatedAtTime> ?now .
 
       } WHERE {
-        { SELECT ?s ?versionedS WHERE {
+        { SELECT DISTINCT ?s ?versionedS WHERE {
           ?s a ${sparqlEscapeUri(type)}.
           GRAPH <http://mu.semte.ch/graphs/ldes-initializer> { ?s ext:versionedUri ?versionedS . }
-        } ORDER BY ?s LIMIT ${limit} OFFSET ${offset} }
+        } ORDER BY ?s OFFSET ${offset} LIMIT ${limit}  }
 
         ?s ?p ?o .
         FILTER (?p != ext:versionedUri)
@@ -144,12 +144,12 @@ async function writeInitialStateForStreamAndType(ldesStream, type) {
       )
       .executeRaw();
     stream.write(res.body + "\n");
+    const written = Math.min(count, offset + limit);
     console.log(
       `[${ldesStream}]  wrote ${
-        offset + limit
+        written
       }/${count} instances for type ${type} (${(
-        ((offset + limit) / count) *
-        100
+        (written / count) * 100
       ).toFixed(2)}%)`
     );
     offset += limit;

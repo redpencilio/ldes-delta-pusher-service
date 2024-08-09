@@ -14,7 +14,7 @@ export const initialization = {
   public: {
     "http://data.vlaanderen.be/ns/mandaat#Mandataris": {
       filter: `
-        OPTIONAL { ?s extlmb:hasPublicationStatus ?publicationStatus. }
+        OPTIONAL { ?s <http://mu.semte.ch/vocabularies/ext/lmb/hasPublicationStatus> ?publicationStatus. }
         FILTER(!BOUND(?publicationStatus) || ?publicationStatus != <http://data.lblod.info/id/concept/MandatarisPublicationStatusCode/588ce330-4abb-4448-9776-a17d9305df07>)`,
     },
   },
