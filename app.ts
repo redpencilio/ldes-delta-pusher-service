@@ -9,6 +9,7 @@ import {
   storeLastModifiedSynced,
 } from "./catchUpAfterRestart";
 import { Changeset, Quad } from "./types";
+import { writeInitialState } from "./writeInitialState";
 
 app.use(
   bodyParser.json({
@@ -62,6 +63,12 @@ app.post("/publish", async function (req: Request, res: Response) {
   }
 });
 
-catchUpAfterRestart();
+new Promise(async (resolve) => {
+  if (process.env.WRITE_INITIAL_STATE === "true") {
+    await writeInitialState();
+  }
+  await catchUpAfterRestart();
+  resolve(true);
+});
 
 app.use(errorHandler);

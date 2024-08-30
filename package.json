@@ -6,6 +6,8 @@
   "dependencies": {
     "body-parser": "^1.20.0",
     "node-fetch": "^2.6.7",
+    "express-http-context": "~1.2.4",
+    "sparql-client-2": "https://github.com/erikap/node-sparql-client.git",
     "@lblod/mu-auth-sudo": "^0.6.1"
   },
   "scripts": {
