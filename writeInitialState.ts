@@ -173,6 +173,9 @@ async function writeInitialStateForStreamAndType(ldesStream, type) {
   const count = await countMatchesForType(ldesStream, type);
 
   const filter = initialization[ldesStream]?.[type]?.filter || "";
+  const extraConstruct =
+    initialization[ldesStream]?.[type]?.extraConstruct || "";
+  const extraWhere = initialization[ldesStream]?.[type]?.extraWhere || "";
 
   while (offset < count) {
     const res = await ttlClient
@@ -186,7 +189,7 @@ async function writeInitialStateForStreamAndType(ldesStream, type) {
         ?versionedS ?p ?o .
         ?versionedS <http://purl.org/dc/terms/isVersionOf> ?s .
         ?versionedS <http://www.w3.org/ns/prov#generatedAtTime> ?now .
-
+        ${extraConstruct}
       } WHERE {
         { SELECT DISTINCT ?s ?versionedS WHERE {
           ?s a ${sparqlEscapeUri(type)}.
@@ -199,6 +202,8 @@ async function writeInitialStateForStreamAndType(ldesStream, type) {
         BIND(NOW() as ?now)
 
         ${filter}
+
+        ${extraWhere}
       }`
       )
       .executeRaw();
