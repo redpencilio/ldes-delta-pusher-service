@@ -185,7 +185,7 @@ async function writeInitialStateForStreamAndType(ldesStream, type) {
       PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
 
       CONSTRUCT {
-        <http://lmb.lblod.info/streams/ldes/public> <https://w3id.org/tree#member> ?versionedS .
+        <${LDES_BASE}/${ldesStream}> <https://w3id.org/tree#member> ?versionedS .
         ?versionedS ?p ?o .
         ?versionedS <http://purl.org/dc/terms/isVersionOf> ?s .
         ?versionedS <http://www.w3.org/ns/prov#generatedAtTime> ?now .
