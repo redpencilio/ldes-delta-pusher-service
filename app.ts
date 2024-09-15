@@ -11,6 +11,8 @@ import {
 import { Changeset, Quad } from "./types";
 import { writeInitialState } from "./writeInitialState";
 
+const UPDATE_MODIFIED_LAST_SEEN = process.env.UPDATELAST_SEEN != 'false'; // default to true
+
 app.use(
   bodyParser.json({
     limit: "500mb",
@@ -22,18 +24,20 @@ app.use(
 );
 
 async function updateLastModifiedSeen(quads: Quad[]) {
-  let highestModified: Date | null = null;
-  quads.forEach((quad) => {
-    if (quad.predicate.value !== "http://purl.org/dc/terms/modified") {
-      return;
+  if( UPDATE_MODIFIED_LAST_SEEN ) {
+    let highestModified: Date | null = null;
+    quads.forEach((quad) => {
+      if (quad.predicate.value !== "http://purl.org/dc/terms/modified") {
+        return;
+      }
+      const modified = new Date(quad.object.value);
+      if (!highestModified || modified.getTime() > highestModified.getTime()) {
+        highestModified = modified;
+      }
+    });
+    if (highestModified) {
+      await storeLastModifiedSynced(highestModified);
     }
-    const modified = new Date(quad.object.value);
-    if (!highestModified || modified.getTime() > highestModified.getTime()) {
-      highestModified = modified;
-    }
-  });
-  if (highestModified) {
-    await storeLastModifiedSynced(highestModified);
   }
 }
 

@@ -15,6 +15,7 @@ The following environment variables can be provided:
 - `MAX_PAGE_SIZE_BYTES`: the maximum size of every initial LDES page file in bytes, defaults to `10000000`. Only used if `WRITE_INITIAL_STATE` is true.
 - `INITIAL_STATE_LIMIT`: the limit to use when writing batches to the initial state file. Note: every batch will have its own prefixes, which means prefixes are redefined (allowed by the turtle spec and virtuoso). Default: 10000. Only used if `WRITE_INITIAL_STATE` is true.
 - `DIRECT_DB_ENDPOINT`: writing the initial state requires a direct connection to the database (we use ttl directly). This is the url of the database. Default: http://virtuoso:8890/sparql. Only used if `WRITE_INITIAL_STATE` is true.
+- `UPDATE_MODIFIED_LAST_SEEN`: Make updating of modified last seen optional.
 
 > [!CAUTION]
 > The catching up after restart process is EXPERIMENTAL. It also has the drawback that IF you add a migration (not triggering deltas right now) with concepts that have modified dates earlier than the moment the LDES has caught up to, these instances will NOT be detected by the catch up process and will NOT appear on the LDES feed. You can get around that by setting the ext:lastSync for the LDES pusher to before these modified dates, but that will trigger some duplication on the feed.
