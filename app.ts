@@ -11,10 +11,10 @@ import {
 import { Changeset, Quad } from "./types";
 import { writeInitialState } from "./writeInitialState";
 
-import { cronjob as autoHealing } from './cron-healing/cron';
-import { AUTO_HEALING } from './cron-healing/environment';
+import { cronjob as autoHealing } from "./self-healing/cron";
+import { AUTO_HEALING } from "./self-healing/environment";
 
-if(AUTO_HEALING) {
+if (AUTO_HEALING) {
   autoHealing.start();
 }
 
