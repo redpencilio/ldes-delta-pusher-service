@@ -11,6 +11,13 @@ import {
 import { Changeset, Quad } from "./types";
 import { writeInitialState } from "./writeInitialState";
 
+import { cronjob as autoHealing } from './cron-healing/cron';
+import { AUTO_HEALING } from './cron-healing/environment';
+
+if(AUTO_HEALING) {
+  autoHealing.start();
+}
+
 app.use(
   bodyParser.json({
     limit: "500mb",
