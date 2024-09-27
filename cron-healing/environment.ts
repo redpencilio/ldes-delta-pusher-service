@@ -1,9 +1,6 @@
 export const AUTO_HEALING = process.env.AUTO_HEALING ?? false;
-export let LDES_STREAM_BASE = process.env.LDES_STREAM_BASE ?? '';
 export const LDES_STREAM = process.env.LDES_STREAM ?? '';
 export const CRON_HEALING = process.env.CRON_HEALING ?? '* * * * *';
-export const DIRECT_DATABASE_ENDPOINT =
-  process.env.DIRECT_DATABASE_ENDPOINT ?? 'http://virtuoso:8890/sparql';
 export const LDES_DUMP_GRAPH =
   process.env.LDES_LOAD_GRAPH ?? 'http://mu.semte.ch/graphs/ldes-dump';
 export const TRANSFORMED_LDES_GRAPH =
@@ -12,14 +9,7 @@ export const TRANSFORMED_LDES_GRAPH =
 export const BATCH_SIZE = parseInt(process.env.BATCH_SIZE ?? '100');
 export const EXTRA_HEADERS = JSON.parse(process.env.EXTRA_HEADERS ?? '{}');
 
-if (LDES_STREAM_BASE === '') {
-  throw new Error('Please set the "LDES_STREAM" environment variable');
-}
-
-if (!LDES_STREAM_BASE.endsWith('/')) {
-  LDES_STREAM_BASE = LDES_STREAM_BASE + '/';
-}
-
+// TODO: this will be with a hook to the CONFIG in the app
 export const CONFIG = {
   public: {
     entities: {
@@ -47,11 +37,7 @@ export const CONFIG = {
 };
 
 console.log('\n Environment variables:');
-console.log(`\t AUTO_HEALING: ${AUTO_HEALING}`);
-console.log(`\t CRON_HEALING: ${CRON_HEALING}`);
-console.log(`\t LDES_STREAM_BASE: ${LDES_STREAM_BASE}`);
 console.log(`\t LDES_STREAM: ${LDES_STREAM}`);
-console.log(`\t DIRECT_DATABASE_ENDPOINT: ${DIRECT_DATABASE_ENDPOINT}`);
 console.log(`\t LDES_DUMP_GRAPH: ${LDES_DUMP_GRAPH}`);
 console.log(`\t TRANSFORMED_LDES_GRAPH: ${TRANSFORMED_LDES_GRAPH}`);
 console.log(`\t BATCH_SIZE: ${BATCH_SIZE}`);

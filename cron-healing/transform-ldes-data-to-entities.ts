@@ -2,11 +2,11 @@ import { querySudo } from '@lblod/mu-auth-sudo';
 import { sparqlEscapeUri } from 'mu';
 
 import {
-  DIRECT_DATABASE_ENDPOINT,
   EXTRA_HEADERS,
   LDES_DUMP_GRAPH,
   TRANSFORMED_LDES_GRAPH,
 } from './environment';
+import { DIRECT_DB_ENDPOINT } from '../config';
 
 export async function transformLdesDataToEntities() {
   await querySudo(
@@ -38,6 +38,6 @@ export async function transformLdesDataToEntities() {
     }
   `,
     EXTRA_HEADERS,
-    { sparqlEndpoint: DIRECT_DATABASE_ENDPOINT },
+    { sparqlEndpoint: DIRECT_DB_ENDPOINT },
   );
 }

@@ -5,14 +5,14 @@ import { NamedNode } from 'rdflib';
 
 import {
   BATCH_SIZE,
-  DIRECT_DATABASE_ENDPOINT,
   EXTRA_HEADERS,
   LDES_DUMP_GRAPH,
 } from './environment';
+import { DIRECT_DB_ENDPOINT } from '../config';
 
 export async function clearLdesDumpGraph(): Promise<void> {
   await updateSudo(`DROP SILENT GRAPH <${LDES_DUMP_GRAPH}>`, EXTRA_HEADERS, {
-    sparqlEndpoint: DIRECT_DATABASE_ENDPOINT,
+    sparqlEndpoint: DIRECT_DB_ENDPOINT,
   });
 }
 
@@ -68,6 +68,6 @@ async function addTriplesToLDesDumpGraph(triples: string) {
       }
     `,
     EXTRA_HEADERS,
-    { sparqlEndpoint: DIRECT_DATABASE_ENDPOINT },
+    { sparqlEndpoint: DIRECT_DB_ENDPOINT },
   );
 }

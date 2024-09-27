@@ -3,7 +3,8 @@ import { CronJob } from 'cron';
 import { healEntities } from './heal-ldes-data';
 import { clearLdesDumpGraph, insertLdesPageToDumpGraph } from './upload-entities-to-db';
 import { transformLdesDataToEntities } from './transform-ldes-data-to-entities';
-import { CRON_HEALING, EXTRA_HEADERS, LDES_STREAM, LDES_STREAM_BASE } from './environment';
+import { CRON_HEALING, EXTRA_HEADERS, LDES_STREAM } from './environment';
+import { LDES_BASE } from '../config';
 
 let isRunning = false;
 const cronMethod = async () => {
@@ -46,7 +47,7 @@ async function loadStreamIntoDumpGraph(): Promise<void> {
     //   return;
     // }
     const turtleText = await fetchPage(
-      LDES_STREAM_BASE + LDES_STREAM,
+      LDES_BASE + LDES_STREAM,
       currentPage,
     );
     if (turtleText) {

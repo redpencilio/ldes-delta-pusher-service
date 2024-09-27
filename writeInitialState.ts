@@ -4,11 +4,9 @@ import httpContext from "express-http-context";
 import fs from "fs";
 import { initialization } from "./config/initialization";
 import { v4 as uuid } from "uuid";
+import { DIRECT_DB_ENDPOINT, LDES_BASE } from './config';
 
 const limit = parseInt(process.env.INITIAL_STATE_LIMIT || "10000");
-const LDES_BASE = process.env.LDES_BASE || "http://lmb.lblod.info/streams/ldes";
-const DIRECT_DB_ENDPOINT =
-  process.env.DIRECT_DB_ENDPOINT || "http://virtuoso:8890/sparql";
 const MAX_PAGE_SIZE_BYTES = parseInt(
   process.env.MAX_PAGE_SIZE_BYTES || "10000000"
 );
@@ -141,7 +139,7 @@ async function startFile(
 ) {
   const fileCount = parseInt(file.split(".")[0]);
   console.log(`[${streamName}]  starting new file ${fileCount}`);
-  const streamUri = `<${LDES_BASE}/${streamName}>`;
+  const streamUri = `<${LDES_BASE}${streamName}>`;
   const triplesToAdd = `
   ${streamUri} <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/ldes#EventStream> .
   ${streamUri} <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <https://w3id.org/tree#Collection> .
@@ -185,7 +183,7 @@ async function writeInitialStateForStreamAndType(ldesStream, type) {
       PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
 
       CONSTRUCT {
-        <${LDES_BASE}/${ldesStream}> <https://w3id.org/tree#member> ?versionedS .
+        <${LDES_BASE}${ldesStream}> <https://w3id.org/tree#member> ?versionedS .
         ?versionedS ?p ?o .
         ?versionedS <http://purl.org/dc/terms/isVersionOf> ?s .
         ?versionedS <http://www.w3.org/ns/prov#generatedAtTime> ?now .

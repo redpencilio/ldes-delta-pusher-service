@@ -3,11 +3,11 @@ import { sparqlEscapeUri } from 'mu';
 
 import {
   CONFIG,
-  DIRECT_DATABASE_ENDPOINT,
   EXTRA_HEADERS,
   LDES_DUMP_GRAPH,
   TRANSFORMED_LDES_GRAPH,
 } from './environment';
+import { DIRECT_DB_ENDPOINT } from '../config';
 
 export async function healEntities(stream: string): Promise<void> {
   const rdfTypes = Object.keys(CONFIG[stream].entities);
@@ -38,6 +38,7 @@ async function getDifferences(type: string, stream: string) {
 
   const ldesValues = await getMissingValuesLdes({ type, valuesProperties, graphTypesToExclude, excludeGraphs });
   const excessLdesValues = await getExcessValuesLdes({ type, valuesProperties, graphTypesToExclude, excludeGraphs });
+  // TODO: These results will always be 10 results because of LIMIT 10 on the query
   console.log({ ldesValues: JSON.stringify(ldesValues) });
   console.log({ excessLdesValues: JSON.stringify(excessLdesValues) });
 }
@@ -76,7 +77,7 @@ async function getExcessValuesLdes(options: {
     }   LIMIT 10
   `,
     EXTRA_HEADERS,
-    { sparqlEndpoint: DIRECT_DATABASE_ENDPOINT },
+    { sparqlEndpoint: DIRECT_DB_ENDPOINT },
   );
 }
 async function getMissingValuesLdes(options: {
@@ -113,6 +114,6 @@ async function getMissingValuesLdes(options: {
     }   LIMIT 10
   `,
     EXTRA_HEADERS,
-    { sparqlEndpoint: DIRECT_DATABASE_ENDPOINT },
+    { sparqlEndpoint: DIRECT_DB_ENDPOINT },
   );
 }
