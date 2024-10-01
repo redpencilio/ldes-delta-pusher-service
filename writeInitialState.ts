@@ -1,10 +1,11 @@
 import { SparqlClient } from "sparql-client-2";
-import { sparqlEscapeUri, query } from "mu";
+import { sparqlEscapeUri, sparqlEscapeDateTime } from "mu";
 import httpContext from "express-http-context";
 import fs from "fs";
 import { initialization } from "./config/initialization";
 import { v4 as uuid } from "uuid";
-import { DIRECT_DB_ENDPOINT, LDES_BASE } from './config';
+import { querySudo } from "@lblod/mu-auth-sudo";
+import { DIRECT_DB_ENDPOINT, LDES_BASE } from "./config";
 
 const limit = parseInt(process.env.INITIAL_STATE_LIMIT || "10000");
 const MAX_PAGE_SIZE_BYTES = parseInt(
@@ -97,7 +98,7 @@ async function cleanupVersionedUris() {
 
 async function countMatchesForType(stream, type) {
   const filter = initialization[stream]?.[type]?.filter || "";
-  const res = await query(
+  const res = await querySudo(
     `
     SELECT (COUNT(DISTINCT ?s) as ?count) WHERE {
       ?s a ${sparqlEscapeUri(type)}.
@@ -175,6 +176,7 @@ async function writeInitialStateForStreamAndType(ldesStream, type) {
     initialization[ldesStream]?.[type]?.extraConstruct || "";
   const extraWhere = initialization[ldesStream]?.[type]?.extraWhere || "";
 
+  const now = sparqlEscapeDateTime(new Date().toISOString());
   while (offset < count) {
     const res = await ttlClient
       .query(
@@ -186,7 +188,7 @@ async function writeInitialStateForStreamAndType(ldesStream, type) {
         <${LDES_BASE}${ldesStream}> <https://w3id.org/tree#member> ?versionedS .
         ?versionedS ?p ?o .
         ?versionedS <http://purl.org/dc/terms/isVersionOf> ?s .
-        ?versionedS <http://www.w3.org/ns/prov#generatedAtTime> ?now .
+        ?versionedS <http://www.w3.org/ns/prov#generatedAtTime> ${now} .
         ${extraConstruct}
       } WHERE {
         { SELECT DISTINCT ?s ?versionedS WHERE {
@@ -194,10 +196,12 @@ async function writeInitialStateForStreamAndType(ldesStream, type) {
           GRAPH <http://mu.semte.ch/graphs/ldes-initializer> { ?s ext:versionedUri ?versionedS . }
         } ORDER BY ?s OFFSET ${offset} LIMIT ${limit}  }
 
-        ?s ?p ?o .
-        FILTER (?p != ext:versionedUri)
+        GRAPH ?g {
+          ?s ?p ?o .
+          FILTER (?p != ext:versionedUri)
+        }
 
-        BIND(NOW() as ?now)
+        ?g <http://mu.semte.ch/vocabularies/ext/ownedBy> ?bestuurseenheid.
 
         ${filter}
 

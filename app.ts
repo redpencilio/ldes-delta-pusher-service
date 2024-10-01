@@ -14,10 +14,6 @@ import { writeInitialState } from "./writeInitialState";
 import { cronjob as autoHealing } from "./self-healing/cron";
 import { AUTO_HEALING } from "./self-healing/environment";
 
-if (AUTO_HEALING) {
-  autoHealing.start();
-}
-
 app.use(
   bodyParser.json({
     limit: "500mb",
@@ -74,7 +70,12 @@ new Promise(async (resolve) => {
   if (process.env.WRITE_INITIAL_STATE === "true") {
     await writeInitialState();
   }
+
   await catchUpAfterRestart();
+  if (AUTO_HEALING == "true") {
+    autoHealing.start();
+  }
+
   resolve(true);
 });
 

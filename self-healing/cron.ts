@@ -6,8 +6,10 @@ import {
   insertLdesPageToDumpGraph,
 } from "./upload-entities-to-db";
 import { transformLdesDataToEntities } from "./transform-ldes-data-to-entities";
-import { CRON_HEALING, EXTRA_HEADERS, LDES_STREAM } from "./environment";
-import { LDES_BASE } from "../config";
+import { CRON_HEALING, EXTRA_HEADERS } from "./environment";
+import { LDES_ENDPOINT } from "../config";
+import { HealingConfig, getHealingConfig } from "../config/healing";
+import { resolve } from "path";
 
 let isRunning = false;
 const cronMethod = async () => {
@@ -25,31 +27,35 @@ const cronMethod = async () => {
     return;
   }
   isRunning = true;
-  const startTime = performance.now();
-  // This is not yet handling the mutliple streams from the config
-  // This one service can than handle multiple streams
-  // await clearHealingTempGraphs();
-  // await loadStreamIntoDumpGraph();
-  console.log(
-    `Loading LDES into dump graph took ${performance.now() - startTime} ms`
-  );
-  // await transformLdesDataToEntities();
-  await healEntities(LDES_STREAM);
-  console.log(`Healing the LDES took ${performance.now() - startTime} ms`);
+  const config = await getHealingConfig();
+  console.log(`Healing config: ${JSON.stringify(config)}`);
+
+  for (const stream of Object.keys(config)) {
+    await healStream(stream, config);
+  }
   isRunning = false;
 };
 
-async function loadStreamIntoDumpGraph(): Promise<void> {
+async function healStream(stream: string, config: HealingConfig) {
+  const startTime = performance.now();
+
+  await clearHealingTempGraphs();
+  await loadStreamIntoDumpGraph(stream);
+  console.log(
+    `Loading LDES into dump graph took ${performance.now() - startTime} ms`
+  );
+  await transformLdesDataToEntities();
+  await healEntities(stream, config);
+  console.log(`Healing the LDES took ${performance.now() - startTime} ms`);
+}
+
+async function loadStreamIntoDumpGraph(stream: string): Promise<void> {
   let isLdesInsertedInDatabase = false;
   let currentPage = 0;
   while (!isLdesInsertedInDatabase) {
     currentPage++;
-    // if (currentPage === 3) {
-    //   // TODO: for testing ONLY
-    //   isLdesInsertedInDatabase = true;
-    //   return;
-    // }
-    const turtleText = await fetchPage(LDES_BASE + LDES_STREAM, currentPage);
+
+    const turtleText = await fetchPage(LDES_ENDPOINT + stream, currentPage);
     if (turtleText) {
       await insertLdesPageToDumpGraph(turtleText);
     } else {
