@@ -4,7 +4,7 @@ export const getHealingConfig = async () => {
     public: {
       entities: {
         "http://data.vlaanderen.be/ns/mandaat#Mandataris": {
-          predicates: [
+          healingPredicates: [
             // this is the minimal config, one could also check all predicates per type, something like this:
             "http://purl.org/dc/terms/modified",
             // "http://data.vlaanderen.be/ns/mandaat#rangorde",
@@ -23,7 +23,7 @@ export const getHealingConfig = async () => {
             // "http://data.vlaanderen.be/ns/mandaat#status",
             // "http://mu.semte.ch/vocabularies/ext/lmb/hasPublicationStatus",
           ],
-          extraFilter: `OPTIONAL { ?subject <http://lblod.data.gift/vocabularies/lmb/hasPublicationStatus> ?publicationStatus. }
+          instanceFilter: `OPTIONAL { ?s <http://lblod.data.gift/vocabularies/lmb/hasPublicationStatus> ?publicationStatus. }
         FILTER(!BOUND(?publicationStatus) || ?publicationStatus != <http://data.lblod.info/id/concept/MandatarisPublicationStatusCode/588ce330-4abb-4448-9776-a17d9305df07>)`,
         },
         "http://data.vlaanderen.be/ns/mandaat#Fractie": [

@@ -22,9 +22,7 @@ export async function healEntities(
 
 async function triggerRecreate(differences) {
   const uniqueSubjects = [
-    ...new Set<string>(
-      differences.map((difference) => difference.subject.value)
-    ),
+    ...new Set<string>(differences.map((difference) => difference.s.value)),
   ];
   if (uniqueSubjects.length === 0) {
     console.log("No differences found.");
@@ -59,17 +57,17 @@ async function triggerRecreate(differences) {
 async function getSubjectTypes(subjects: string[]) {
   const result = await querySudo(
     `
-    SELECT DISTINCT ?subject ?type
+    SELECT DISTINCT ?s ?type
     WHERE {
-      VALUES ?subject { ${subjects.map(sparqlEscapeUri).join(" ")} }
-      ?subject a ?type.
+      VALUES ?s { ${subjects.map(sparqlEscapeUri).join(" ")} }
+      ?s a ?type.
     }
   `
   );
 
   return result.results.bindings.map((binding) => {
     return {
-      subject: binding.subject.value,
+      subject: binding.s.value,
       type: binding.type.value,
     };
   });
@@ -126,14 +124,14 @@ async function getMissingValuesLdes(options: {
 
   const result = await querySudo(
     `
-    SELECT DISTINCT ?subject ?predicate ?object
+    SELECT DISTINCT ?s ?p ?o
     WHERE {
       VALUES ?excludeGraphType { ${graphTypesToExclude} }
-      VALUES ?predicate { ${predicateValues} }
+      VALUES ?p { ${predicateValues} }
 
       GRAPH ?graph {
-        ?subject a ${sparqlEscapeUri(type)}.
-        ?subject ?predicate ?object.
+        ?s a ${sparqlEscapeUri(type)}.
+        ?s ?p ?o.
 
         ${filter}
       }
@@ -145,7 +143,7 @@ async function getMissingValuesLdes(options: {
 
       FILTER NOT EXISTS {
         GRAPH ${sparqlEscapeUri(TRANSFORMED_LDES_GRAPH)} {
-          ?subject ?predicate ?object.
+          ?s ?p ?o.
         }
       }
 
