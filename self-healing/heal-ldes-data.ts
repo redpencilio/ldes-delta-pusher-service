@@ -79,11 +79,12 @@ async function getDifferences(
   config: HealingConfig
 ) {
   const predicates =
-    config[stream].entities[type].predicates || config[stream].entities[type];
+    config[stream].entities[type].healingPredicates ||
+    config[stream].entities[type];
   const predicateValues = predicates
     .map((p: string) => sparqlEscapeUri(p))
     .join("\n");
-  const filter = config[stream].entities[type].extraFilter || "";
+  const filter = config[stream].entities[type].instanceFilter || "";
 
   const excludedGraphs = config[stream].graphsToExclude;
   excludedGraphs.push(LDES_DUMP_GRAPH);
