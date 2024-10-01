@@ -8,7 +8,7 @@ import { Changeset } from "./types";
 import { writeInitialState } from "./writeInitialState";
 
 import { cronjob as autoHealing } from "./self-healing/cron";
-import { AUTO_HEALING } from "./self-healing/environment";
+import { AUTO_HEALING } from "./config";
 
 app.use(
   bodyParser.json({

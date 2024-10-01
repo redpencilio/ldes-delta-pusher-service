@@ -4,20 +4,23 @@ import ForkingStore from "forking-store";
 import { NamedNode } from "rdflib";
 
 import {
-  BATCH_SIZE,
-  EXTRA_HEADERS,
-  LDES_DUMP_GRAPH,
-  TRANSFORMED_LDES_GRAPH,
-} from "./environment";
+  HEALING_BATCH_SIZE,
+  HEALING_DUMP_GRAPH,
+  HEALING_TRANSFORMED_GRAPH,
+} from "../config";
 import { DIRECT_DB_ENDPOINT } from "../config";
 
 export async function clearHealingTempGraphs(): Promise<void> {
-  await updateSudo(`DROP SILENT GRAPH <${LDES_DUMP_GRAPH}>`, EXTRA_HEADERS, {
-    sparqlEndpoint: DIRECT_DB_ENDPOINT,
-  });
   await updateSudo(
-    `DROP SILENT GRAPH <${TRANSFORMED_LDES_GRAPH}>`,
-    EXTRA_HEADERS,
+    `DROP SILENT GRAPH <${HEALING_DUMP_GRAPH}>`,
+    {},
+    {
+      sparqlEndpoint: DIRECT_DB_ENDPOINT,
+    }
+  );
+  await updateSudo(
+    `DROP SILENT GRAPH <${HEALING_TRANSFORMED_GRAPH}>`,
+    {},
     {
       sparqlEndpoint: DIRECT_DB_ENDPOINT,
     }
@@ -32,8 +35,8 @@ export async function insertLdesPageToDumpGraph(
   tripleStore.parse(turtleText, graph, "text/turtle");
   const statements = [...tripleStore.graph.statements];
   const tripleCount = statements.length;
-  for (let index = 0; index < tripleCount; index += BATCH_SIZE) {
-    const batch = statements.splice(0, BATCH_SIZE);
+  for (let index = 0; index < tripleCount; index += HEALING_BATCH_SIZE) {
+    const batch = statements.splice(0, HEALING_BATCH_SIZE);
     if (batch.length === 0) {
       continue;
     }
@@ -92,12 +95,12 @@ async function addTriplesToLDesDumpGraph(triples: string) {
   await updateSudo(
     `
       INSERT DATA {
-        GRAPH ${sparqlEscapeUri(LDES_DUMP_GRAPH)} {
+        GRAPH ${sparqlEscapeUri(HEALING_DUMP_GRAPH)} {
           ${triples}
         }
       }
     `,
-    EXTRA_HEADERS,
+    {},
     { sparqlEndpoint: DIRECT_DB_ENDPOINT, mayRetry: true }
   );
 }

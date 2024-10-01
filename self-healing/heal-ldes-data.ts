@@ -2,11 +2,11 @@ import { querySudo } from "@lblod/mu-auth-sudo";
 import { sparqlEscapeUri } from "mu";
 import dispatch from "../config/dispatch";
 import {
-  EXTRA_HEADERS,
-  LDES_DUMP_GRAPH,
-  TRANSFORMED_LDES_GRAPH,
-} from "./environment";
-import { DIRECT_DB_ENDPOINT, HEALING_LIMIT } from "../config";
+  HEALING_DUMP_GRAPH,
+  HEALING_TRANSFORMED_GRAPH,
+  DIRECT_DB_ENDPOINT,
+  HEALING_LIMIT,
+} from "../config";
 import { HealingConfig } from "../config/healing";
 
 export async function healEntities(
@@ -87,8 +87,8 @@ async function getDifferences(
   const filter = config[stream].entities[type].instanceFilter || "";
 
   const excludedGraphs = config[stream].graphsToExclude;
-  excludedGraphs.push(LDES_DUMP_GRAPH);
-  excludedGraphs.push(TRANSFORMED_LDES_GRAPH);
+  excludedGraphs.push(HEALING_DUMP_GRAPH);
+  excludedGraphs.push(HEALING_TRANSFORMED_GRAPH);
   const excludeGraphs = excludedGraphs
     .map((graph: string) => sparqlEscapeUri(graph))
     .join(", ");
@@ -143,14 +143,14 @@ async function getMissingValuesLdes(options: {
       }
 
       FILTER NOT EXISTS {
-        GRAPH ${sparqlEscapeUri(TRANSFORMED_LDES_GRAPH)} {
+        GRAPH ${sparqlEscapeUri(HEALING_TRANSFORMED_GRAPH)} {
           ?s ?p ?o.
         }
       }
 
     }   LIMIT ${HEALING_LIMIT}
   `,
-    EXTRA_HEADERS,
+    {},
     { sparqlEndpoint: DIRECT_DB_ENDPOINT }
   );
   return result.results.bindings.map((binding) => binding);

@@ -1,9 +1,13 @@
 export type HealingConfig = Awaited<ReturnType<typeof getHealingConfig>>;
 export const getHealingConfig = async () => {
   return {
+    // this is the name of a stream, you can have multiple streams in the config,
+    // the healing process will check them one by one sequentially
     public: {
       entities: {
+        // this is a type that should be present and verified on the LDES stream
         "http://data.vlaanderen.be/ns/mandaat#Mandataris": {
+          // these are the predicates for which the healing will look for missing values on the ldes
           healingPredicates: [
             // this is the minimal config, one could also check all predicates per type, something like this:
             "http://purl.org/dc/terms/modified",
@@ -23,10 +27,14 @@ export const getHealingConfig = async () => {
             // "http://data.vlaanderen.be/ns/mandaat#status",
             // "http://mu.semte.ch/vocabularies/ext/lmb/hasPublicationStatus",
           ],
+          // this will filter out instances in the database that are not expected to be on the stream
+          // in this case, mandataris instances that are in the draft publication state will not be on the public stream,
+          // but will be on the abb stream (not shown)
           instanceFilter: `OPTIONAL { ?s <http://lblod.data.gift/vocabularies/lmb/hasPublicationStatus> ?publicationStatus. }
         FILTER(!BOUND(?publicationStatus) || ?publicationStatus != <http://data.lblod.info/id/concept/MandatarisPublicationStatusCode/588ce330-4abb-4448-9776-a17d9305df07>)`,
         },
         "http://data.vlaanderen.be/ns/mandaat#Fractie": [
+          // simple types only specify the array of predicates to check the values for
           "http://purl.org/dc/terms/modified",
         ],
         "http://www.w3.org/ns/org#Membership": [

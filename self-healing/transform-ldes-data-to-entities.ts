@@ -1,11 +1,7 @@
 import { querySudo } from "@lblod/mu-auth-sudo";
 import { sparqlEscapeUri } from "mu";
 
-import {
-  EXTRA_HEADERS,
-  LDES_DUMP_GRAPH,
-  TRANSFORMED_LDES_GRAPH,
-} from "./environment";
+import { HEALING_DUMP_GRAPH, HEALING_TRANSFORMED_GRAPH } from "../config";
 import { DIRECT_DB_ENDPOINT } from "../config";
 
 export async function transformLdesDataToEntities() {
@@ -16,12 +12,12 @@ export async function transformLdesDataToEntities() {
     PREFIX prov: <http://www.w3.org/ns/prov#>
 
     INSERT {
-      GRAPH ${sparqlEscapeUri(TRANSFORMED_LDES_GRAPH)} {
+      GRAPH ${sparqlEscapeUri(HEALING_TRANSFORMED_GRAPH)} {
         ?entity ?p ?o.
       }
     }
     WHERE {
-      GRAPH ${sparqlEscapeUri(LDES_DUMP_GRAPH)} {
+      GRAPH ${sparqlEscapeUri(HEALING_DUMP_GRAPH)} {
         ?ldesStream tree:member ?ldesEntity.
         ?ldesEntity ?p ?o.
         ?ldesEntity dct:isVersionOf ?entity.
@@ -37,7 +33,7 @@ export async function transformLdesDataToEntities() {
       }
     }
   `,
-    EXTRA_HEADERS,
+    {},
     { sparqlEndpoint: DIRECT_DB_ENDPOINT }
   );
 }

@@ -6,7 +6,7 @@ import {
   insertLdesPageToDumpGraph,
 } from "./upload-entities-to-db";
 import { transformLdesDataToEntities } from "./transform-ldes-data-to-entities";
-import { CRON_HEALING, EXTRA_HEADERS } from "./environment";
+import { CRON_HEALING } from "../config";
 import { LDES_ENDPOINT } from "../config";
 import { HealingConfig, getHealingConfig } from "../config/healing";
 import { resolve } from "path";
@@ -71,7 +71,6 @@ async function fetchPage(url: string, page: number): Promise<string | null> {
   const response = await fetch(fullUrl, {
     headers: {
       Accept: "text/turtle",
-      ...EXTRA_HEADERS,
     },
   });
   if (response.status === 404) {
