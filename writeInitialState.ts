@@ -1,14 +1,13 @@
 import { SparqlClient } from "sparql-client-2";
-import { sparqlEscapeUri, query } from "mu";
+import { sparqlEscapeUri, sparqlEscapeDateTime } from "mu";
 import httpContext from "express-http-context";
 import fs from "fs";
 import { initialization } from "./config/initialization";
 import { v4 as uuid } from "uuid";
+import { querySudo } from "@lblod/mu-auth-sudo";
+import { DIRECT_DB_ENDPOINT, LDES_BASE } from "./config";
 
 const limit = parseInt(process.env.INITIAL_STATE_LIMIT || "10000");
-const LDES_BASE = process.env.LDES_BASE || "http://lmb.lblod.info/streams/ldes";
-const DIRECT_DB_ENDPOINT =
-  process.env.DIRECT_DB_ENDPOINT || "http://virtuoso:8890/sparql";
 const MAX_PAGE_SIZE_BYTES = parseInt(
   process.env.MAX_PAGE_SIZE_BYTES || "10000000"
 );
@@ -99,7 +98,7 @@ async function cleanupVersionedUris() {
 
 async function countMatchesForType(stream, type) {
   const filter = initialization[stream]?.[type]?.filter || "";
-  const res = await query(
+  const res = await querySudo(
     `
     SELECT (COUNT(DISTINCT ?s) as ?count) WHERE {
       ?s a ${sparqlEscapeUri(type)}.
@@ -141,7 +140,7 @@ async function startFile(
 ) {
   const fileCount = parseInt(file.split(".")[0]);
   console.log(`[${streamName}]  starting new file ${fileCount}`);
-  const streamUri = `<${LDES_BASE}/${streamName}>`;
+  const streamUri = `<${LDES_BASE}${streamName}>`;
   const triplesToAdd = `
   ${streamUri} <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/ldes#EventStream> .
   ${streamUri} <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <https://w3id.org/tree#Collection> .
@@ -177,6 +176,7 @@ async function writeInitialStateForStreamAndType(ldesStream, type) {
     initialization[ldesStream]?.[type]?.extraConstruct || "";
   const extraWhere = initialization[ldesStream]?.[type]?.extraWhere || "";
 
+  const now = sparqlEscapeDateTime(new Date().toISOString());
   while (offset < count) {
     const res = await ttlClient
       .query(
@@ -185,10 +185,10 @@ async function writeInitialStateForStreamAndType(ldesStream, type) {
       PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
 
       CONSTRUCT {
-        <${LDES_BASE}/${ldesStream}> <https://w3id.org/tree#member> ?versionedS .
+        <${LDES_BASE}${ldesStream}> <https://w3id.org/tree#member> ?versionedS .
         ?versionedS ?p ?o .
         ?versionedS <http://purl.org/dc/terms/isVersionOf> ?s .
-        ?versionedS <http://www.w3.org/ns/prov#generatedAtTime> ?now .
+        ?versionedS <http://www.w3.org/ns/prov#generatedAtTime> ${now} .
         ${extraConstruct}
       } WHERE {
         { SELECT DISTINCT ?s ?versionedS WHERE {
@@ -196,10 +196,12 @@ async function writeInitialStateForStreamAndType(ldesStream, type) {
           GRAPH <http://mu.semte.ch/graphs/ldes-initializer> { ?s ext:versionedUri ?versionedS . }
         } ORDER BY ?s OFFSET ${offset} LIMIT ${limit}  }
 
-        ?s ?p ?o .
-        FILTER (?p != ext:versionedUri)
+        GRAPH ?g {
+          ?s ?p ?o .
+          FILTER (?p != ext:versionedUri)
+        }
 
-        BIND(NOW() as ?now)
+        ?g <http://mu.semte.ch/vocabularies/ext/ownedBy> ?bestuurseenheid.
 
         ${filter}
 

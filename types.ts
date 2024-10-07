@@ -13,9 +13,3 @@ export type Changeset = {
   inserts: Quad[];
   deletes: Quad[];
 };
-
-export type CatchupPageItem = {
-  uri: string;
-  date: Date;
-  type: string;
-};

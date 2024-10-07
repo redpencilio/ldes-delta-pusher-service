@@ -4,11 +4,14 @@
     "url": "git+https://github.com/redpencilio/ldes-delta-pusher-service"
   },
   "dependencies": {
+    "@lblod/mu-auth-sudo": "^0.6.1",
     "body-parser": "^1.20.0",
-    "node-fetch": "^2.6.7",
+    "cron": "^3.1.7",
     "express-http-context": "~1.2.4",
-    "sparql-client-2": "https://github.com/erikap/node-sparql-client.git",
-    "@lblod/mu-auth-sudo": "^0.6.1"
+    "forking-store": "^2.2.0",
+    "node-fetch": "^2.6.7",
+    "rdflib": "^2.2.35",
+    "sparql-client-2": "https://github.com/erikap/node-sparql-client.git"
   },
   "scripts": {
     "release": "release-it"
