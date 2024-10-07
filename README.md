@@ -13,11 +13,11 @@ The following environment variables can be provided:
 - `INITIAL_STATE_LIMIT`: the limit to use when writing batches to the initial state file. Note: every batch will have its own prefixes, which means prefixes are redefined (allowed by the turtle spec and virtuoso). Default: 10000. Only used if `WRITE_INITIAL_STATE` is true.
 - `DIRECT_DB_ENDPOINT`: writing the initial state requires a direct connection to the database (we use ttl directly). This is the url of the database. Default: http://virtuoso:8890/sparql. Only used if `WRITE_INITIAL_STATE` is true.
 - `AUTO_HEALING`: whether or not to use the auto-healing functionality for the LDES stream, set to "true" to activate auto healing. defaults to false.
-- `CRON_HEALING`: the cron config for how often to trigger auto healing. Defaults to 0 \* \* \* \*.
+- `CRON_HEALING`: the cron config for how often to trigger auto healing. Defaults to 0 \* \* \* \* (so every hour).
 - `HEALING_LIMIT`: number of instances to heal in one iteration of the auto healing. Defaults to 1000. Only used if `AUTO_HEALING` is true.
 - `HEALING_DUMP_GRAPH`: the (temporary) graph that is used to receive the raw triples posted on the LDES. Defaults to `http://mu.semte.ch/graphs/ldes-dump`. This graph is cleared every time the healing process is run.
 - `HEALING_TRANSFORMED_GRAPH`: the (temporary) graph where the processed LDES data is stored. This holds the latest version of the LDES instances so they can be compared with what is currently in the database. Defaults to `http://mu.semte.ch/graphs/transformed-ldes-data`
-- `HEALING_BATCH_SIZE`: the number of triples that are written to the dump graph at a time
+- `HEALING_BATCH_SIZE`: the number of triples that are written to the dump graph at a time. Deafults to 100
 
 ## Auto Healing
 
