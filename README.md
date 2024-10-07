@@ -17,7 +17,7 @@ The following environment variables can be provided:
 - `HEALING_LIMIT`: number of instances to heal in one iteration of the auto healing. Defaults to 1000. Only used if `AUTO_HEALING` is true.
 - `HEALING_DUMP_GRAPH`: the (temporary) graph that is used to receive the raw triples posted on the LDES. Defaults to `http://mu.semte.ch/graphs/ldes-dump`. This graph is cleared every time the healing process is run.
 - `HEALING_TRANSFORMED_GRAPH`: the (temporary) graph where the processed LDES data is stored. This holds the latest version of the LDES instances so they can be compared with what is currently in the database. Defaults to `http://mu.semte.ch/graphs/transformed-ldes-data`
-- `HEALING_BATCH_SIZE`: the number of triples that are written to the dump graph at a time. Deafults to 100
+- `HEALING_BATCH_SIZE`: the number of triples that are written to the dump graph at a time. Defaults to 100
 
 ## Auto Healing
 
