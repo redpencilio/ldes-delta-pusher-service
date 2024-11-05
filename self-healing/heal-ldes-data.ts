@@ -17,11 +17,15 @@ export async function healEntities(
   for (const type of rdfTypes) {
     await erectMissingTombstones(type, stream, config);
     const differences = await getDifferences(type, stream, config);
-    await triggerRecreate(differences);
+    await triggerRecreate(differences, stream, config);
   }
 }
 
-async function triggerRecreate(differences) {
+async function triggerRecreate(
+  differences,
+  stream: string,
+  config: HealingConfig
+) {
   const uniqueSubjects = [
     ...new Set<string>(differences.map((difference) => difference.s.value)),
   ];
@@ -29,7 +33,7 @@ async function triggerRecreate(differences) {
     console.log("No differences found.");
     return;
   }
-  const subjectTypes = await getSubjectTypes(uniqueSubjects);
+  const subjectTypes = await getSubjectTypes(uniqueSubjects, stream, config);
   const inserts = subjectTypes.map((s) => {
     // fake everything but the subject
     return {
@@ -55,17 +59,41 @@ async function triggerRecreate(differences) {
   ]);
 }
 
-async function getSubjectTypes(subjects: string[]) {
+async function getSubjectTypes(subjects: string[], stream, config) {
+  const graphTypesToExclude = config[stream].graphTypesToExclude;
+  const excludedGraphs = config[stream].graphsToExclude;
+  let excludeGraphsFilter = "";
+  if (excludedGraphs?.length > 0) {
+    excludeGraphsFilter = excludedGraphs
+      .map((graph: string) => sparqlEscapeUri(graph))
+      .join(", ");
+    excludeGraphsFilter = `FILTER(?targetGraph NOT IN (${excludeGraphsFilter}))`;
+  }
+  let excludeGraphTypesFilter = "";
+  let excludeGraphTypeValues = "";
+  if (graphTypesToExclude?.length > 0) {
+    excludeGraphTypeValues = graphTypesToExclude
+      .map((type: string) => sparqlEscapeUri(type))
+      .join("\n ");
+    excludeGraphTypeValues = `VALUES ?excludeGraphType { ${excludeGraphTypeValues} }`;
+    excludeGraphTypesFilter = `FILTER NOT EXISTS {
+      ?targetGraph a ?excludedGraphType.
+    }`;
+  }
+
   const result = await querySudo(
     `
     PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
     SELECT DISTINCT ?s ?type
     WHERE {
       VALUES ?s { ${subjects.map(sparqlEscapeUri).join(" ")} }
-      GRAPH ?g {
+      ${excludeGraphTypeValues}
+      GRAPH ?targetGraph {
         ?s a ?type.
       }
-      ?g ext:ownedBy ?eenheid.
+
+      ${excludeGraphsFilter}
+      ${excludeGraphTypesFilter}
     }
   `
   );
