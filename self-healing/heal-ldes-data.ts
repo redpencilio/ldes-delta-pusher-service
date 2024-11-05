@@ -1,5 +1,5 @@
-import { querySudo } from "@lblod/mu-auth-sudo";
-import { sparqlEscapeUri } from "mu";
+import { querySudo, updateSudo } from "@lblod/mu-auth-sudo";
+import { sparqlEscapeUri, sparqlEscapeDateTime } from "mu";
 import dispatch from "../config/dispatch";
 import {
   HEALING_DUMP_GRAPH,
@@ -15,12 +15,17 @@ export async function healEntities(
 ): Promise<void> {
   const rdfTypes = Object.keys(config[stream].entities);
   for (const type of rdfTypes) {
+    await erectMissingTombstones(type, stream, config);
     const differences = await getDifferences(type, stream, config);
-    await triggerRecreate(differences);
+    await triggerRecreate(differences, stream, config);
   }
 }
 
-async function triggerRecreate(differences) {
+async function triggerRecreate(
+  differences,
+  stream: string,
+  config: HealingConfig
+) {
   const uniqueSubjects = [
     ...new Set<string>(differences.map((difference) => difference.s.value)),
   ];
@@ -28,7 +33,7 @@ async function triggerRecreate(differences) {
     console.log("No differences found.");
     return;
   }
-  const subjectTypes = await getSubjectTypes(uniqueSubjects);
+  const subjectTypes = await getSubjectTypes(uniqueSubjects, stream, config);
   const inserts = subjectTypes.map((s) => {
     // fake everything but the subject
     return {
@@ -54,13 +59,41 @@ async function triggerRecreate(differences) {
   ]);
 }
 
-async function getSubjectTypes(subjects: string[]) {
+async function getSubjectTypes(subjects: string[], stream, config) {
+  const graphTypesToExclude = config[stream].graphTypesToExclude;
+  const excludedGraphs = config[stream].graphsToExclude;
+  let excludeGraphsFilter = "";
+  if (excludedGraphs?.length > 0) {
+    excludeGraphsFilter = excludedGraphs
+      .map((graph: string) => sparqlEscapeUri(graph))
+      .join(", ");
+    excludeGraphsFilter = `FILTER(?targetGraph NOT IN (${excludeGraphsFilter}))`;
+  }
+  let excludeGraphTypesFilter = "";
+  let excludeGraphTypeValues = "";
+  if (graphTypesToExclude?.length > 0) {
+    excludeGraphTypeValues = graphTypesToExclude
+      .map((type: string) => sparqlEscapeUri(type))
+      .join("\n ");
+    excludeGraphTypeValues = `VALUES ?excludeGraphType { ${excludeGraphTypeValues} }`;
+    excludeGraphTypesFilter = `FILTER NOT EXISTS {
+      ?targetGraph a ?excludedGraphType.
+    }`;
+  }
+
   const result = await querySudo(
     `
+    PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
     SELECT DISTINCT ?s ?type
     WHERE {
       VALUES ?s { ${subjects.map(sparqlEscapeUri).join(" ")} }
-      ?s a ?type.
+      ${excludeGraphTypeValues}
+      GRAPH ?targetGraph {
+        ?s a ?type.
+      }
+
+      ${excludeGraphsFilter}
+      ${excludeGraphTypesFilter}
     }
   `
   );
@@ -154,4 +187,78 @@ async function getMissingValuesLdes(options: {
     { sparqlEndpoint: DIRECT_DB_ENDPOINT }
   );
   return result.results.bindings.map((binding) => binding);
+}
+
+async function erectMissingTombstones(
+  type: string,
+  stream: string,
+  config: HealingConfig
+) {
+  const graphTypesToExclude = config[stream].graphTypesToExclude;
+  const excludedGraphs = config[stream].graphsToExclude;
+  let excludeGraphsFilter = "";
+  if (excludedGraphs?.length > 0) {
+    excludeGraphsFilter = excludedGraphs
+      .map((graph: string) => sparqlEscapeUri(graph))
+      .join(", ");
+    excludeGraphsFilter = `FILTER(?targetGraph NOT IN (${excludeGraphsFilter}))`;
+  }
+  let excludeGraphTypesFilter = "";
+  let excludeGraphTypeValues = "";
+  if (graphTypesToExclude?.length > 0) {
+    excludeGraphTypeValues = graphTypesToExclude
+      .map((type: string) => sparqlEscapeUri(type))
+      .join("\n ");
+    excludeGraphTypeValues = `VALUES ?excludeGraphType { ${excludeGraphTypeValues} }`;
+    excludeGraphTypesFilter = `FILTER NOT EXISTS {
+      ?targetGraph a ?excludedGraphType.
+    }`;
+  }
+
+  const where = `
+      GRAPH ${sparqlEscapeUri(HEALING_TRANSFORMED_GRAPH)} {
+        ?s a ${sparqlEscapeUri(type)}.
+      }
+      FILTER NOT EXISTS {
+        ${excludeGraphTypeValues}
+        GRAPH ?targetGraph {
+          ?s a ${sparqlEscapeUri(type)}.
+        }
+
+        ${excludeGraphsFilter}
+        ${excludeGraphTypesFilter}
+      }`;
+
+  const count = await querySudo(`
+    SELECT (COUNT(DISTINCT ?s) as ?count)
+    WHERE {
+      ${where}
+    }
+  `);
+  if (parseInt(count.results.bindings[0]?.count?.value || "0") < 1) {
+    console.log(`No missing tombstones to erect for ${type}`);
+    return;
+  }
+  console.log(
+    `Found ${count.results.bindings[0].count.value} missing tombstones for ${type}. Erecting...`
+  );
+
+  // we're putting the tombstones into the public graph. we don't know the graph they should have been put in
+  // and this is the best we can to to heal
+  await updateSudo(`
+    PREFIX astreams: <http://www.w3.org/ns/activitystreams#>
+    PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+    PREFIX dct: <http://purl.org/dc/terms/>
+    INSERT {
+      GRAPH <http://mu.semte.ch/graphs/public> {
+        ?s a astreams:Tombstone ;
+           astreams:deleted ${sparqlEscapeDateTime(new Date())} ;
+           dct:modified ${sparqlEscapeDateTime(new Date())} ;
+           astreams:formerType ${sparqlEscapeUri(type)} .
+      }
+    }
+    WHERE {
+      ${where}
+    }
+  `);
 }
