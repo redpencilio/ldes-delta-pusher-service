@@ -142,5 +142,3 @@ export const cronjob = CronJob.from({
   cronTime: CRON_HEALING,
   onTick: cronMethod,
 });
-
-// setTimeout(cronMethod, 10000);
