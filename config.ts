@@ -6,7 +6,6 @@ export let LDES_ENDPOINT = process.env.LDES_ENDPOINT as string;
 export let LDES_BASE = process.env.LDES_BASE || "";
 export const AUTO_HEALING = process.env.AUTO_HEALING ?? false;
 export const CRON_HEALING = process.env.CRON_HEALING ?? "0 * * * *"; // Every hour
-// every 14 days at 2 am
 export const CRON_CHECKPOINT = process.env.CRON_CHECKPOINT;
 export const HEALING_LIMIT = process.env.HEALING_LIMIT || 1000;
 export const HEALING_BATCH_SIZE = parseInt(
