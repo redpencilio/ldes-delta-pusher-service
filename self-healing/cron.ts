@@ -1,5 +1,6 @@
+import { querySudo } from "@lblod/mu-auth-sudo";
 import { CronJob } from "cron";
-import { text } from 'node:stream/consumers';
+import { text } from "node:stream/consumers";
 import { healEntities } from "./heal-ldes-data";
 import {
   clearHealingTempGraphs,
@@ -8,6 +9,10 @@ import {
 import { transformLdesDataToEntities } from "./transform-ldes-data-to-entities";
 import { CRON_HEALING } from "../config";
 import { HealingConfig, getHealingConfig } from "../config/healing";
+import {
+  ttlFileAsContentType,
+  ttlFileAsString,
+} from "../util/ttlFileAsContentType";
 
 import { getNode, getConfigFromEnv } from "@lblod/ldes-producer";
 const ldesProducerConfig = getConfigFromEnv();
@@ -52,16 +57,15 @@ async function healStream(stream: string, config: HealingConfig) {
 
 async function loadStreamIntoDumpGraph(stream: string): Promise<void> {
   let isLdesInsertedInDatabase = false;
-  let currentPage = 0;
-  while (!isLdesInsertedInDatabase) {
-    currentPage++;
-
+  let currentPage: string | null = await determineFirstPageOrCheckpoint(stream);
+  while (!isLdesInsertedInDatabase && currentPage) {
     const turtleText = await fetchPage(stream, currentPage);
     if (turtleText) {
       await insertLdesPageToDumpGraph(turtleText);
     } else {
       isLdesInsertedInDatabase = true;
     }
+    currentPage = await determineNextPage(currentPage, stream);
   }
 }
 
@@ -83,12 +87,60 @@ async function fetchPage(stream: string, page: number): Promise<string | null> {
     }
     throw new Error(
       `Failed to fetch LDES page from stream ${stream}, error: ${e}`
-    )
+    );
   }
+}
+async function determineFirstPageOrCheckpoint(stream: string): Promise<string> {
+  console.log(`Fetching checkpoints for stream ${stream}`);
+  const fileString = await ttlFileAsString(
+    `/data/${stream}/checkpoints.ttl`,
+    "application/ld+json"
+  );
+  try {
+    const modified = "http://purl.org/dc/terms/modified";
+    const checkpoints = JSON.parse(fileString).filter((i) => i[modified]);
+    checkpoints.sort((a: any, b: any) =>
+      a[modified][0].value < b[modified][0].value ? 1 : -1
+    );
+    // take the second to last checkpoint so we are sure that we healed away things between last heal and checkpoint if any
+    const checkpointName = checkpoints[1]["@id"].split("checkpoints/")[1];
+    return `${stream}/checkpoints/${checkpointName}`;
+  } catch (e) {
+    return `${stream}/1`;
+  }
+}
 
+async function determineNextPage(
+  currentPage: string,
+  stream: string
+): Promise<string | null> {
+  const relativePageUrl = currentPage.split(`${stream}/`)[1];
+  const query = `
+    SELECT ?page WHERE {
+      ?oldPage <https://w3id.org/tree#relation> ?relation .
+      ?relation a <https://w3id.org/tree#GreaterThanOrEqualToRelation> .
+      ?relation <https://w3id.org/tree#value> ?date .
+      ?relation <https://w3id.org/tree#node> ?page .
+      FILTER(STRENDS(STR(?oldPage), "${relativePageUrl}"))
+    } LIMIT 1
+  `;
+  const result = await querySudo(query);
+  console.log(
+    `Next page query result: ${JSON.stringify(
+      result.results.bindings[0]?.page?.value
+    )}`
+  );
+  if (result.results.bindings.length === 0) {
+    return null;
+  }
+  const page = result.results.bindings[0].page.value;
+  const safePartOfPageUrl = page.split(`/${stream}/`)[1];
+  return `${stream}/${safePartOfPageUrl}`;
 }
 
 export const cronjob = CronJob.from({
   cronTime: CRON_HEALING,
   onTick: cronMethod,
 });
+
+// setTimeout(cronMethod, 10000);

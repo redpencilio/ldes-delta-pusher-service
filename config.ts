@@ -5,6 +5,8 @@ export const LDES_FOLDER = process.env.LDES_FOLDER as string;
 export const DATA_FOLDER = process.env.DATA_FOLDER || "/data" as string;
 export const AUTO_HEALING = process.env.AUTO_HEALING ?? false;
 export const CRON_HEALING = process.env.CRON_HEALING ?? "0 * * * *"; // Every hour
+// every 14 days at 2 am
+export const CRON_CHECKPOINT = process.env.CRON_CHECKPOINT;
 export const HEALING_LIMIT = process.env.HEALING_LIMIT || 1000;
 export const HEALING_BATCH_SIZE = parseInt(
   process.env.HEALING_BATCH_SIZE ?? "100"
