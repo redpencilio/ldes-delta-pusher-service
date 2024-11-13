@@ -130,12 +130,15 @@ async function getDifferences(
     .map((graph: string) => sparqlEscapeUri(graph))
     .join("\n");
 
+  const healingFilter = config[stream].entities[type].healingFilter || "";
+
   const missingLdesValues = await getMissingValuesLdes({
     type,
     predicateValues,
     filter,
     graphTypesToExclude,
     excludeGraphs,
+    healingFilter,
   });
   // only looking for missing values on the ldes, excess values bring hard challenges like how did they even get here? should we purge them or is a tombstone enough? were they just not filtered out correctly?
   console.log(
@@ -152,9 +155,16 @@ async function getMissingValuesLdes(options: {
   filter: string;
   graphTypesToExclude: string;
   excludeGraphs: string;
+  healingFilter: string;
 }) {
-  const { graphTypesToExclude, predicateValues, filter, type, excludeGraphs } =
-    options;
+  const {
+    graphTypesToExclude,
+    predicateValues,
+    filter,
+    type,
+    excludeGraphs,
+    healingFilter,
+  } = options;
 
   const result = await querySudo(
     `
@@ -180,8 +190,8 @@ async function getMissingValuesLdes(options: {
           ?s ?p ?o.
         }
       }
-
-    }   LIMIT ${HEALING_LIMIT}
+      ${healingFilter}
+    } LIMIT ${HEALING_LIMIT}
   `,
     {},
     { sparqlEndpoint: DIRECT_DB_ENDPOINT }
@@ -222,7 +232,11 @@ async function erectMissingTombstones(
       FILTER NOT EXISTS {
         ${excludeGraphTypeValues}
         GRAPH ?targetGraph {
-          ?s a ${sparqlEscapeUri(type)}.
+          VALUES ?type {
+            ${sparqlEscapeUri(type)}
+            <http://www.w3.org/ns/activitystreams#Tombstone>
+          }
+          ?s a ?type.
         }
 
         ${excludeGraphsFilter}

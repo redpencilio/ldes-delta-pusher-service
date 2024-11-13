@@ -49,9 +49,10 @@ export const getHealingConfig = async () => {
         "http://purl.org/dc/terms/PeriodOfTime": [
           "http://purl.org/dc/terms/modified",
         ],
-        "http://www.w3.org/ns/activitystreams#Tombstone": [
-          "http://purl.org/dc/terms/modified",
-        ],
+        "http://www.w3.org/ns/activitystreams#Tombstone": {
+          healingPredicates: ["http://purl.org/dc/terms/modified"],
+          healingFilter: "",
+        },
       },
       graphsToExclude: ["http://mu.semte.ch/graphs/besluiten-consumed"],
       graphTypesToExclude: ["http://mu.semte.ch/vocabularies/ext/FormHistory"],
