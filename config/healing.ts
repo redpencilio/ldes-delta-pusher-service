@@ -49,9 +49,17 @@ export const getHealingConfig = async () => {
         "http://purl.org/dc/terms/PeriodOfTime": [
           "http://purl.org/dc/terms/modified",
         ],
-        "http://www.w3.org/ns/activitystreams#Tombstone": [
-          "http://purl.org/dc/terms/modified",
-        ],
+        "http://www.w3.org/ns/activitystreams#Tombstone": {
+          healingPredicates: ["http://purl.org/dc/terms/modified"],
+          // an example filter that only erects tombstones if they don't have any other type in any other graph owned by an org
+          healingFilter: `FILTER NOT EXISTS {
+            GRAPH ?h {
+             ?s a ?otherType.
+             FILTER(?otherType != <http://www.w3.org/ns/activitystreams#Tombstone>)
+            }
+            ?h <http://mu.semte.ch/vocabularies/ext/ownedBy> ?org.
+          }`,
+        },
       },
       graphsToExclude: ["http://mu.semte.ch/graphs/besluiten-consumed"],
       graphTypesToExclude: ["http://mu.semte.ch/vocabularies/ext/FormHistory"],
