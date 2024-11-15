@@ -97,6 +97,12 @@ async function determineFirstPageOrCheckpoint(stream: string): Promise<string> {
     "application/ld+json"
   );
   try {
+    console.log(`Fetching checkpoints for stream ${stream}`);
+    const fileString = await ttlFileAsString(
+      `/data/${stream}/checkpoints.ttl`,
+      "application/ld+json",
+      LDES_ENDPOINT
+    );
     const modified = "http://purl.org/dc/terms/modified";
     const checkpoints = JSON.parse(fileString).filter((i) => i[modified]);
     checkpoints.sort((a: any, b: any) =>

@@ -40,3 +40,7 @@ To find out which checkpoints are available, the ldes-delta-pusher service offer
 ```
 
 Checkpoints can be created by specifying a value for the `CRON_CHECKPOINT` environment variable in the form of a normal cron time string.
+
+## Auto Healing and Checkpoints
+
+When using checkpoints and checkpoints together, the auto healing will notice that checkpoints are available and restore the LDES stream starting from the second to last checkpoint. That way, changes that may not have been healed before the creation of the last checkpoint will still be healed in the LDES stream.
