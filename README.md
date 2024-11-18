@@ -43,4 +43,4 @@ Checkpoints can be created by specifying a value for the `CRON_CHECKPOINT` envir
 
 ## Auto Healing and Checkpoints
 
-When using checkpoints and checkpoints together, the auto healing will notice that checkpoints are available and restore the LDES stream starting from the second to last checkpoint. That way, changes that may not have been healed before the creation of the last checkpoint will still be healed in the LDES stream.
+When using checkpoints and checkpoints together, the auto healing will notice that checkpoints are available and restore the LDES stream starting from the last checkpoint if it is older than two days. That way, changes that may not have been healed before the creation of the last checkpoint will still be healed in the LDES stream.

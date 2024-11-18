@@ -104,12 +104,18 @@ async function determineFirstPageOrCheckpoint(stream: string): Promise<string> {
       LDES_ENDPOINT
     );
     const modified = "http://purl.org/dc/terms/modified";
-    const checkpoints = JSON.parse(fileString).filter((i) => i[modified]);
+    const twoDaysAgo = new Date().getTime() - 1000 * 60 * 60 * 48;
+    // only keep checkpoints that are older than two days so we are
+    // reasonably sure the healing has taken effect in the main stream
+    const checkpoints = JSON.parse(fileString).filter((i) => {
+      return (
+        i[modified] && new Date(i[modified][0].value).getTime() < twoDaysAgo
+      );
+    });
     checkpoints.sort((a: any, b: any) =>
       a[modified][0].value < b[modified][0].value ? 1 : -1
     );
-    // take the second to last checkpoint so we are sure that we healed away things between last heal and checkpoint if any
-    const checkpointName = checkpoints[1]["@id"].split("checkpoints/")[1];
+    const checkpointName = checkpoints[0]["@id"].split("checkpoints/")[1];
     return `${stream}/checkpoints/${checkpointName}`;
   } catch (e) {
     return `${stream}/1`;
