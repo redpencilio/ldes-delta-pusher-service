@@ -109,7 +109,7 @@ async function determineFirstPageOrCheckpoint(stream: string): Promise<string> {
     // reasonably sure the healing has taken effect in the main stream
     const checkpoints = JSON.parse(fileString).filter((i) => {
       return (
-        i[modified] && new Date(i[modified][0].value).getTime() < twoDaysAgo
+        i[modified] && new Date(i[modified][0]["@value"]).getTime() < twoDaysAgo
       );
     });
     checkpoints.sort((a: any, b: any) =>
