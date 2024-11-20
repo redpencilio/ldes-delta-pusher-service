@@ -21,7 +21,6 @@ export function toSparqlTriple(quad: Quad): string {
 
 
 export async function moveTriples(changesets: Changeset[], stream = LDES_FOLDER) {
-	ldesProducerConfig.cache = {};
 	let turtleBody = "";
 	console.log("stream", stream);
 	for (const { inserts } of changesets) {
