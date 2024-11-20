@@ -1,45 +1,48 @@
 // @ts-ignore
 import { sparqlEscapeUri, sparqlEscapeString } from "mu";
-import fetch from "node-fetch";
-import { LDES_ENDPOINT, LDES_FRAGMENTER } from "./config";
+import { DATA_FOLDER, LDES_BASE, LDES_FOLDER, LDES_FRAGMENTER } from "./config";
 import { Changeset, Quad, Term } from "./types";
+import { addData, getConfigFromEnv } from "@lblod/ldes-producer";
 
-
+const ldesProducerConfig = getConfigFromEnv();
+console.log("ldesProducerConfig", ldesProducerConfig);
 export function toSparqlTerm(thing: Term): string {
 	if (thing.type == "uri") return sparqlEscapeUri(thing.value);
-	else return sparqlEscapeString(thing.value);
+	// FIXME: without this you probably lose every triples of type boolean & number
+	// a better solution would be to use n3 or something similar
+	else if (thing.datatype?.length) return "\"" + thing.value?.toString() || "" + "\"" + "^^" + this.datatype;
+	else return "\"" + thing.value + "\"";
 }
 
 export function toSparqlTriple(quad: Quad): string {
-	return `${toSparqlTerm(quad.subject)} ${toSparqlTerm(
-		quad.predicate
-	)} ${toSparqlTerm(quad.object)}.`;
+	return `${toSparqlTerm(quad.subject)} ${toSparqlTerm(quad.predicate)} ${toSparqlTerm(quad.object)}.`;
 }
 
-async function sendLDESRequest(uri: string, body: string) {
-	const queryParams = new URLSearchParams({
-		resource: uri,
-		...(LDES_FRAGMENTER && { fragmenter: LDES_FRAGMENTER })
-	});
 
-	return fetch(`${LDES_ENDPOINT}?` + queryParams, {
-		method: "POST",
-		headers: {
-			"Content-Type": "text/turtle",
-		},
-		body: body,
-	});
-}
 
-export async function moveTriples(changesets: Changeset[]) {
+export async function moveTriples(changesets: Changeset[], stream = LDES_FOLDER) {
+	ldesProducerConfig.cache = {};
+	let turtleBody = "";
+	console.log("stream", stream);
 	for (const { inserts } of changesets) {
 		if (inserts.length) {
-			let subject = inserts[0].subject.value;
-			let turtleBody = "";
 			inserts.forEach((triple) => {
 				turtleBody += toSparqlTriple(triple) + "\n";
 			});
-			let response = await sendLDESRequest(subject, turtleBody);
+
 		}
 	}
+	if (!turtleBody.length) {
+		console.log('nothing to do.');
+		return;
+	}
+	console.log(turtleBody);
+	const fs = require("fs");
+	fs.writeFileSync(DATA_FOLDER + '/debug.ttl', turtleBody, { encoding: 'utf-8' });
+	await addData(ldesProducerConfig, {
+		contentType: "text/turtle",
+		folder: stream,
+		body: turtleBody,
+		fragmenter: 'time-fragmenter',
+	});
 }

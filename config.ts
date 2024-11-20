@@ -1,8 +1,8 @@
 export const LDES_FRAGMENTER = process.env.LDES_FRAGMENTER as
   | string
   | undefined;
-export let LDES_ENDPOINT = process.env.LDES_ENDPOINT as string;
-
+export const LDES_FOLDER = process.env.LDES_FOLDER as string;
+export const DATA_FOLDER = process.env.DATA_FOLDER as string;
 export let LDES_BASE = process.env.LDES_BASE || "";
 export const AUTO_HEALING = process.env.AUTO_HEALING ?? false;
 export const CRON_HEALING = process.env.CRON_HEALING ?? "0 * * * *"; // Every hour
@@ -25,15 +25,22 @@ if (LDES_BASE === "") {
 if (!LDES_BASE.endsWith("/")) {
   LDES_BASE = LDES_BASE + "/";
 }
-if (!LDES_ENDPOINT.endsWith("/")) {
-  LDES_ENDPOINT = LDES_ENDPOINT + "/";
+
+process.env.BASE_URL = LDES_BASE; // required by the ldes-producer
+
+if (!LDES_FOLDER?.length) {
+  throw new Error('Please set the "LDES_FOLDER" environment variable. e.g: ldes-mow-registry');
+}
+
+if (!DATA_FOLDER?.length) {
+  throw new Error('Please set the "DATA_FOLDER" environment variable. e.g: /share/ldes');
 }
 
 console.log("\n Configuration:");
 console.log(`\t AUTO_HEALING: ${AUTO_HEALING}`);
 console.log(`\t CRON_HEALING: ${CRON_HEALING}`);
 console.log(`\t LDES_BASE: ${LDES_BASE}`);
-console.log(`\t LDES_ENDPOINT: ${LDES_ENDPOINT}`);
+console.log(`\t LDES_FOLDER: ${LDES_FOLDER}`);
 console.log(`\t DIRECT_DB_ENDPOINT: ${DIRECT_DB_ENDPOINT}`);
 console.log(`\t HEALING_LIMIT: ${HEALING_LIMIT}`);
 console.log(`\t HEALING_DUMP_GRAPH: ${HEALING_DUMP_GRAPH}`);

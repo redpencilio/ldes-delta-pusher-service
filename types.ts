@@ -1,6 +1,7 @@
 export type Term = {
   type: string;
-  value: string;
+  datatype?: string;
+  value: string | number | boolean;
 };
 
 export type Quad = {
