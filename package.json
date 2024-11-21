@@ -4,7 +4,7 @@
     "url": "git+https://github.com/redpencilio/ldes-delta-pusher-service"
   },
   "dependencies": {
-    "@lblod/ldes-producer": "^0.5.2",
+    "@lblod/ldes-producer": "^0.7.0-RC2",
     "@lblod/mu-auth-sudo": "^0.6.1",
     "body-parser": "^1.20.0",
     "cron": "^3.1.7",
