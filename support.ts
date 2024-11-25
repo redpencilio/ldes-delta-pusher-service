@@ -1,24 +1,31 @@
 // @ts-ignore
-import { sparqlEscapeUri, sparqlEscapeString } from "mu";
+import { sparqlEscapeUri, sparqlEscape } from "mu";
 import { LDES_FOLDER, LDES_FRAGMENTER, } from "./config";
 import { Changeset, Quad, Term } from "./types";
 import { addData, getConfigFromEnv } from "@lblod/ldes-producer";
 
 const ldesProducerConfig = getConfigFromEnv();
 console.log("ldesProducerConfig", ldesProducerConfig);
-export function toSparqlTerm(thing: Term): string {
-	if (thing.type == "uri") return sparqlEscapeUri(thing.value);
-	// FIXME: without this you probably lose every triples of type boolean & number
-	// a better solution would be to use n3 or something similar
-	else if (thing.datatype?.length) return "\"" + (thing.value?.toString() || "") + "\"" + "^^" + "<" + thing.datatype + ">";
-	else return "\"" + thing.value?.toString() + "\"";
-}
+
+const datatypeNames = {
+	"http://www.w3.org/2001/XMLSchema#dateTime": "dateTime",
+	"http://www.w3.org/2001/XMLSchema#date": "date",
+	"http://www.w3.org/2001/XMLSchema#decimal": "decimal",
+	"http://www.w3.org/2001/XMLSchema#integer": "int",
+	"http://www.w3.org/2001/XMLSchema#float": "float",
+	"http://www.w3.org/2001/XMLSchema#boolean": "bool",
+};
+const sparqlEscapeObject = (bindingObject: Term): string => {
+	const escapeType = datatypeNames[bindingObject?.datatype || ""] || "string";
+	return bindingObject.type === "uri"
+		? sparqlEscapeUri(bindingObject.value)
+		: sparqlEscape(bindingObject.value, escapeType);
+};
+
 
 export function toSparqlTriple(quad: Quad): string {
-	return `${toSparqlTerm(quad.subject)} ${toSparqlTerm(quad.predicate)} ${toSparqlTerm(quad.object)}.`;
+	return `${sparqlEscapeObject(quad.subject)} ${sparqlEscapeObject(quad.predicate)} ${sparqlEscapeObject(quad.object)}.`;
 }
-
-
 
 export async function moveTriples(changesets: Changeset[], stream = LDES_FOLDER) {
 	let turtleBody = "";
