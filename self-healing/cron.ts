@@ -75,6 +75,12 @@ async function fetchPage(stream: string, page: number): Promise<string | null> {
     });
     return await text(response.stream);
   } catch (e) {
+    if (e.status === 404) {
+      console.log(
+        `Page ${page} not found, assuming it's the last page of the stream`
+      );
+      return null;
+    }
     throw new Error(
       `Failed to fetch LDES page from stream ${stream}, error: ${e}`
     )
