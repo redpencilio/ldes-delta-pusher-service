@@ -3,7 +3,6 @@ export const LDES_FRAGMENTER = process.env.LDES_FRAGMENTER as
   | undefined;
 export const LDES_FOLDER = process.env.LDES_FOLDER as string;
 export const DATA_FOLDER = process.env.DATA_FOLDER || "/data" as string;
-export let LDES_BASE = process.env.LDES_BASE || "";
 export const AUTO_HEALING = process.env.AUTO_HEALING ?? false;
 export const CRON_HEALING = process.env.CRON_HEALING ?? "0 * * * *"; // Every hour
 export const HEALING_LIMIT = process.env.HEALING_LIMIT || 1000;
@@ -18,13 +17,17 @@ export const HEALING_TRANSFORMED_GRAPH =
 export const DIRECT_DB_ENDPOINT =
   process.env.DIRECT_DB_ENDPOINT || "http://virtuoso:8890/sparql";
 
-if (LDES_BASE === "") {
+let ldesBase = process.env.LDES_BASE || "";
+
+if (ldesBase === "") {
   throw new Error('Please set the "LDES_BASE" environment variable');
 }
 
-if (!LDES_BASE.endsWith("/")) {
-  LDES_BASE = LDES_BASE + "/";
+if (!ldesBase.endsWith("/")) {
+  ldesBase += "/";
 }
+
+export const LDES_BASE = ldesBase;
 
 process.env.BASE_URL = LDES_BASE; // required by the ldes-producer
 
