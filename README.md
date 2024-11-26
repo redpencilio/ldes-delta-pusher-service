@@ -5,7 +5,7 @@ This microservice allows you to publish additions and modifications to resources
 The following environment variables can be provided:
 
 - `LDES_FOLDER`: the subfolder to store de LDES streams in.
-- `DATA_FOLDER`: the parent folder to store the LDES streams in.
+- `DATA_FOLDER`: the parent folder to store the LDES streams in (default to `/data`).
 - `LDES_FRAGMENTER` (optional): the fragmenter which should be applied when adding new resources. For time-based streams, this will typically be `time-fragmenter`.
 - `WRITE_INITIAL_STATE`: if set to "true", this writes the current state of the database to the ldes stream as one large page. Default: "false". Writes to `/data/${streamname}/${firstfilebynumericalsort}.ttl` or creates file `1.ttl` if no file exists. Streams are configured in `config/initialization.ts`
 - `LDES_BASE`: base url to be used for the LDES stream that is published. Defaults to `http://lmb.lblod.info/streams/ldes`, only used if `WRITE_INITIAL_STATE` is true.

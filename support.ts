@@ -42,6 +42,7 @@ export async function moveTriples(changesets: Changeset[], stream = LDES_FOLDER)
 		return;
 	}
 
+	turtleBody = "@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .\n" + turtleBody;
 
 	await addData(ldesProducerConfig, {
 		contentType: "text/turtle",
