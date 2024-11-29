@@ -9,13 +9,11 @@ import {
 import { transformLdesDataToEntities } from "./transform-ldes-data-to-entities";
 import { CRON_HEALING } from "../config";
 import { HealingConfig, getHealingConfig } from "../config/healing";
-import {
-  ttlFileAsContentType,
-  ttlFileAsString,
-} from "../util/ttlFileAsContentType";
+import { ttlFileAsString } from "../util/ttlFileAsContentType";
 
 import { getNode, getConfigFromEnv } from "@lblod/ldes-producer";
 const ldesProducerConfig = getConfigFromEnv();
+type PagePointer = { path: string; file: number };
 
 let isRunning = false;
 const cronMethod = async () => {
@@ -57,20 +55,22 @@ async function healStream(stream: string, config: HealingConfig) {
 
 async function loadStreamIntoDumpGraph(stream: string): Promise<void> {
   let isLdesInsertedInDatabase = false;
-  let currentPage: string | null = await determineFirstPageOrCheckpoint(stream);
+  let currentPage: PagePointer | null = await determineFirstPageOrCheckpoint(
+    stream
+  );
   while (!isLdesInsertedInDatabase && currentPage) {
-    const turtleText = await fetchPage(stream, currentPage);
+    const turtleText = await fetchPage(currentPage.path, currentPage.file);
     if (turtleText) {
       await insertLdesPageToDumpGraph(turtleText);
     } else {
       isLdesInsertedInDatabase = true;
     }
-    currentPage = await determineNextPage(currentPage, stream);
+    currentPage = await determineNextPage(stream, currentPage);
   }
 }
 
 async function fetchPage(stream: string, page: number): Promise<string | null> {
-  console.log(`Loading LDES page ${page}`);
+  console.log(`Loading LDES [${stream}] page ${page}`);
   try {
     const response = await getNode(ldesProducerConfig, {
       folder: stream,
@@ -90,18 +90,14 @@ async function fetchPage(stream: string, page: number): Promise<string | null> {
     );
   }
 }
-async function determineFirstPageOrCheckpoint(stream: string): Promise<string> {
-  console.log(`Fetching checkpoints for stream ${stream}`);
-  const fileString = await ttlFileAsString(
-    `/data/${stream}/checkpoints.ttl`,
-    "application/ld+json"
-  );
+async function determineFirstPageOrCheckpoint(
+  stream: string
+): Promise<PagePointer> {
   try {
     console.log(`Fetching checkpoints for stream ${stream}`);
     const fileString = await ttlFileAsString(
       `/data/${stream}/checkpoints.ttl`,
-      "application/ld+json",
-      LDES_ENDPOINT
+      "application/ld+json"
     );
     const modified = "http://purl.org/dc/terms/modified";
     const twoDaysAgo = new Date().getTime() - 1000 * 60 * 60 * 48;
@@ -116,24 +112,24 @@ async function determineFirstPageOrCheckpoint(stream: string): Promise<string> {
       a[modified][0].value < b[modified][0].value ? 1 : -1
     );
     const checkpointName = checkpoints[0]["@id"].split("checkpoints/")[1];
-    return `${stream}/checkpoints/${checkpointName}`;
+    const checkpointFolderName = checkpointName.split("/")[0];
+    return { path: `${stream}/checkpoints/${checkpointFolderName}`, file: 1 };
   } catch (e) {
-    return `${stream}/1`;
+    return { path: `${stream}`, file: 1 };
   }
 }
 
 async function determineNextPage(
-  currentPage: string,
-  stream: string
-): Promise<string | null> {
-  const relativePageUrl = currentPage.split(`${stream}/`)[1];
+  stream: string,
+  currentPage: PagePointer
+): Promise<PagePointer | null> {
   const query = `
     SELECT ?page WHERE {
       ?oldPage <https://w3id.org/tree#relation> ?relation .
       ?relation a <https://w3id.org/tree#GreaterThanOrEqualToRelation> .
       ?relation <https://w3id.org/tree#value> ?date .
       ?relation <https://w3id.org/tree#node> ?page .
-      FILTER(STRENDS(STR(?oldPage), "${relativePageUrl}"))
+      FILTER(STRENDS(STR(?oldPage), "${currentPage.path}/${currentPage.file}"))
     } LIMIT 1
   `;
   const result = await querySudo(query);
@@ -147,7 +143,13 @@ async function determineNextPage(
   }
   const page = result.results.bindings[0].page.value;
   const safePartOfPageUrl = page.split(`/${stream}/`)[1];
-  return `${stream}/${safePartOfPageUrl}`;
+  const splitSafePart = safePartOfPageUrl.split("/");
+  const tail = splitSafePart[splitSafePart.length - 1];
+  const head = splitSafePart.slice(0, splitSafePart.length - 1).join("/");
+  return {
+    path: `${stream}/${head}`,
+    file: parseInt(tail),
+  };
 }
 
 export const cronjob = CronJob.from({

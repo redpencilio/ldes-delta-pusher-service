@@ -50,10 +50,14 @@ function createTtlSparqlClient(turtle = true) {
 
 const ttlClient = createTtlSparqlClient();
 
-async function generateVersionedUris(type) {
-  await ttlClient
-    .query(
-      `
+async function generateVersionedUris(
+  type: string,
+  filter: string,
+  graphFilter: string
+) {
+  // filtering here makes it way easier later on. we should simply consider all instances of the type with a versioned uri
+  // because the filter has already been applied to those instances
+  const query = `
     PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
 
     INSERT {
@@ -63,47 +67,39 @@ async function generateVersionedUris(type) {
     } WHERE {
       {
         SELECT DISTINCT ?s {
-          ?s a ${sparqlEscapeUri(type)}.
-          FILTER NOT EXISTS {
-            ?s ext:versionedUri ?existing.
+          GRAPH ?g {
+            ?s a ${sparqlEscapeUri(type)}.
+            ${filter}
           }
+          ${graphFilter}
         }
       }
       BIND(URI(CONCAT("http://mu.semte.ch/services/ldes-time-fragmenter/versioned/", STRUUID())) as ?versionedUri)
     }
-  `
-    )
-    .executeRaw();
+  `;
+  console.log(query);
+  await ttlClient.query(query).executeRaw();
   console.log("generated versioned uris");
 }
 
 async function cleanupVersionedUris() {
   await ttlClient
-    .query(
-      `
-    PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
-
-    DELETE {
-      GRAPH <http://mu.semte.ch/graphs/ldes-initializer> {
-        ?s ext:versionedUri ?versionedUri .
-      }
-    } WHERE {
-      GRAPH <http://mu.semte.ch/graphs/ldes-initializer> {
-        ?s ext:versionedUri ?versionedUri .
-      }
-    }`
-    )
+    .query("DROP SILENT GRAPH <http://mu.semte.ch/graphs/ldes-initializer>")
     .executeRaw();
   console.log("cleaned up versioned uris");
 }
 
 async function countMatchesForType(stream, type) {
   const filter = initialization[stream]?.[type]?.filter || "";
+  const graphFilter = initialization[stream]?.[type]?.graphFilter || "";
   const res = await querySudo(
     `
     SELECT (COUNT(DISTINCT ?s) as ?count) WHERE {
-      ?s a ${sparqlEscapeUri(type)}.
-      ${filter}
+      GRAPH ?g {
+        ?s a ${sparqlEscapeUri(type)}.
+        ${filter}
+      }
+      ${graphFilter}
     }`
   );
   return parseInt(res.results.bindings[0].count.value);
@@ -215,16 +211,14 @@ async function writeInitialStateForStreamAndType(
   let offset = 0;
   const count = await countMatchesForType(ldesStream, type);
 
-  const filter = initialization[ldesStream]?.[type]?.filter || "";
+  const graphFilter = initialization[ldesStream]?.[type]?.graphFilter || "";
   const extraConstruct =
     initialization[ldesStream]?.[type]?.extraConstruct || "";
   const extraWhere = initialization[ldesStream]?.[type]?.extraWhere || "";
 
   const now = sparqlEscapeDateTime(new Date().toISOString());
   while (offset < count) {
-    const res = await ttlClient
-      .query(
-        `
+    const query = `
       PREFIX extlmb: <http://mu.semte.ch/vocabularies/ext/lmb/>
       PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
 
@@ -245,14 +239,12 @@ async function writeInitialStateForStreamAndType(
           FILTER (?p != ext:versionedUri)
         }
 
-        ?g <http://mu.semte.ch/vocabularies/ext/ownedBy> ?bestuurseenheid.
-
-        ${filter}
+        ${graphFilter}
 
         ${extraWhere}
-      }`
-      )
-      .executeRaw();
+      }`;
+    console.log(query);
+    const res = await ttlClient.query(query).executeRaw();
 
     await writeToCurrentFile(ldesStream, res.body, checkpointName);
 
@@ -271,9 +263,6 @@ async function writeInitialStateForStreamAndType(
 async function forceNewFile(ldesStream: string, checkpoint?: string) {
   if (currentStream) {
     currentStream.end();
-    await new Promise((resolve) => {
-      currentStream.on("finish", resolve);
-    });
   }
 
   let {
@@ -288,7 +277,6 @@ async function forceNewFile(ldesStream: string, checkpoint?: string) {
 
     await endFile(number, endStream);
     endStream.end();
-    await new Promise((resolve) => endStream.on("finish", resolve));
     currentFile = `${directory}/${number + 1}.ttl`;
   }
 
@@ -304,17 +292,18 @@ async function forceNewFile(ldesStream: string, checkpoint?: string) {
 export async function writeInitialState() {
   console.log("writing initial state");
 
-  await cleanupVersionedUris();
-
   for (const ldesStream in initialization) {
     if (!fs.existsSync(`/data/${ldesStream}`)) {
       fs.mkdirSync(`/data/${ldesStream}`);
     }
+    await cleanupVersionedUris();
     // force new file twice so we get an empty first page that can easily be fetched a lot and later modified to point to shortcuts
     await forceNewFile(ldesStream);
     await forceNewFile(ldesStream);
     for (const type in initialization[ldesStream]) {
-      await generateVersionedUris(type);
+      const graphFilter = initialization[ldesStream]?.[type]?.graphFilter || "";
+      const filter = initialization[ldesStream]?.[type]?.filter || "";
+      await generateVersionedUris(type, filter, graphFilter);
       await writeInitialStateForStreamAndType(ldesStream, type);
     }
     // this way we have a fresh small file from which to start the regular process
@@ -355,16 +344,18 @@ async function writeCheckpointRef(ldesStream: string, checkpointName: string) {
 }
 
 export async function writeCheckpoint() {
-  console.log("starting checkpoint checkpoint");
-  await cleanupVersionedUris();
+  console.log("starting checkpoint");
 
   for (const ldesStream in initialization) {
     const checkpointName = ensureCheckpointDir(ldesStream);
+    await cleanupVersionedUris();
 
     // no need to force the double new file here, we don't expect checkpoint to be fetched often
     await forceNewFile(ldesStream, checkpointName);
     for (const type in initialization[ldesStream]) {
-      await generateVersionedUris(type);
+      const graphFilter = initialization[ldesStream]?.[type]?.graphFilter || "";
+      const filter = initialization[ldesStream]?.[type]?.filter || "";
+      await generateVersionedUris(type, filter, graphFilter);
       await writeInitialStateForStreamAndType(ldesStream, type, checkpointName);
     }
     await connectCheckpointToLastLDESPage(ldesStream, checkpointName);

@@ -17,11 +17,11 @@ import rdfSerializer from "rdf-serialize";
 export function ttlFileAsContentType(
   file: string,
   contentType: string,
-  domainName: string
+  domainName?: string
 ): NodeJS.ReadableStream {
   const triplesStream = readTriplesStream(
     file,
-    domainName + path.relative("/data/", file)
+    domainName && domainName + path.relative("/data/", file)
   );
   return rdfSerializer.serialize(triplesStream, {
     contentType: contentType,
@@ -30,10 +30,9 @@ export function ttlFileAsContentType(
 
 export function ttlFileAsString(
   file: string,
-  contentType: string,
-  domainName: string
+  contentType: string
 ): Promise<string> {
-  const stream = ttlFileAsContentType(file, contentType, domainName);
+  const stream = ttlFileAsContentType(file, contentType);
   const chunks: Buffer[] = [];
   return new Promise<string>((resolve, reject) => {
     stream.on("data", (chunk) => chunks.push(Buffer.from(chunk)));

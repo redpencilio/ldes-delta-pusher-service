@@ -5,7 +5,7 @@
   },
   "dependencies": {
     "@lblod/ldes-producer": "0.7.0",
-    "@lblod/mu-auth-sudo": "^0.6.1",
+    "@lblod/mu-auth-sudo": "^0.6.2",
     "@graphy/content.ttl.read": "^4.3.4",
     "@graphy/content.ttl.write": "^4.3.4",
     "body-parser": "^1.20.0",
@@ -42,5 +42,5 @@
       "publish": false
     }
   },
-  "version": "0.7.0"
+  "version": "1.1.0"
 }

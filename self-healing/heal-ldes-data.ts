@@ -122,6 +122,7 @@ async function getDifferences(
   const excludedGraphs = config[stream].graphsToExclude;
   excludedGraphs.push(HEALING_DUMP_GRAPH);
   excludedGraphs.push(HEALING_TRANSFORMED_GRAPH);
+  const graphFilter = config[stream].graphFilter || "";
   const excludeGraphs = excludedGraphs
     .map((graph: string) => sparqlEscapeUri(graph))
     .join(", ");
@@ -136,6 +137,7 @@ async function getDifferences(
     type,
     predicateValues,
     filter,
+    graphFilter,
     graphTypesToExclude,
     excludeGraphs,
     healingFilter,
@@ -153,6 +155,7 @@ async function getMissingValuesLdes(options: {
   type: string;
   predicateValues: string;
   filter: string;
+  graphFilter: string;
   graphTypesToExclude: string;
   excludeGraphs: string;
   healingFilter: string;
@@ -165,25 +168,34 @@ async function getMissingValuesLdes(options: {
     excludeGraphs,
     healingFilter,
   } = options;
+  let graphFilter = options.graphFilter || "";
+  // legacy options, graph filter is much more powerful
+  if (graphTypesToExclude) {
+    graphFilter += `
+    VALUES ?excludeGraphType { ${graphTypesToExclude} }
+    FILTER NOT EXISTS {
+      ?g a ?excludeGraphType.
+    }`;
+  }
+  if (excludeGraphs) {
+    graphFilter += `
+    FILTER(?g NOT IN (${excludeGraphs}))`;
+  }
 
   const result = await querySudo(
     `
     SELECT DISTINCT ?s ?p ?o
     WHERE {
-      VALUES ?excludeGraphType { ${graphTypesToExclude} }
       VALUES ?p { ${predicateValues} }
 
-      GRAPH ?graph {
+      GRAPH ?g {
         ?s a ${sparqlEscapeUri(type)}.
         ?s ?p ?o.
 
         ${filter}
       }
-      FILTER(?graph NOT IN (${excludeGraphs}))
 
-      FILTER NOT EXISTS {
-        ?graph a ?excludeGraphType.
-      }
+      ${graphFilter}
 
       FILTER NOT EXISTS {
         GRAPH ${sparqlEscapeUri(HEALING_TRANSFORMED_GRAPH)} {
@@ -205,22 +217,21 @@ async function erectMissingTombstones(
   config: HealingConfig
 ) {
   const graphTypesToExclude = config[stream].graphTypesToExclude;
+  let graphFilter = config[stream].graphFilter || "";
   const excludedGraphs = config[stream].graphsToExclude;
-  let excludeGraphsFilter = "";
   if (excludedGraphs?.length > 0) {
-    excludeGraphsFilter = excludedGraphs
+    const toExclude = excludedGraphs
       .map((graph: string) => sparqlEscapeUri(graph))
       .join(", ");
-    excludeGraphsFilter = `FILTER(?targetGraph NOT IN (${excludeGraphsFilter}))`;
+    graphFilter += `FILTER(?targetGraph NOT IN (${toExclude}))`;
   }
-  let excludeGraphTypesFilter = "";
   let excludeGraphTypeValues = "";
   if (graphTypesToExclude?.length > 0) {
     excludeGraphTypeValues = graphTypesToExclude
       .map((type: string) => sparqlEscapeUri(type))
       .join("\n ");
     excludeGraphTypeValues = `VALUES ?excludeGraphType { ${excludeGraphTypeValues} }`;
-    excludeGraphTypesFilter = `FILTER NOT EXISTS {
+    graphFilter += `FILTER NOT EXISTS {
       ?targetGraph a ?excludedGraphType.
     }`;
   }
@@ -239,8 +250,7 @@ async function erectMissingTombstones(
           ?s a ?type.
         }
 
-        ${excludeGraphsFilter}
-        ${excludeGraphTypesFilter}
+        ${graphFilter}
       }`;
 
   const count = await querySudo(`

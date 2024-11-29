@@ -4,6 +4,8 @@ export const getHealingConfig = async () => {
     // this is the name of a stream, you can have multiple streams in the config,
     // the healing process will check them one by one sequentially
     public: {
+      graphFilter:
+        "?g <http://mu.semte.ch/vocabularies/ext/ownedBy> ?bestuurseenheid",
       entities: {
         // this is a type that should be present and verified on the LDES stream
         "http://data.vlaanderen.be/ns/mandaat#Mandataris": {
