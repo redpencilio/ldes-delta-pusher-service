@@ -60,6 +60,7 @@ async function triggerRecreate(
 }
 
 async function getSubjectTypes(subjects: string[], stream, config) {
+  let graphFilter = config[stream].graphFilter || "";
   const graphTypesToExclude = config[stream].graphTypesToExclude;
   const excludedGraphs = config[stream].graphsToExclude;
   let excludeGraphsFilter = "";
@@ -67,7 +68,7 @@ async function getSubjectTypes(subjects: string[], stream, config) {
     excludeGraphsFilter = excludedGraphs
       .map((graph: string) => sparqlEscapeUri(graph))
       .join(", ");
-    excludeGraphsFilter = `FILTER(?targetGraph NOT IN (${excludeGraphsFilter}))`;
+    excludeGraphsFilter = `FILTER(?g NOT IN (${excludeGraphsFilter}))`;
   }
   let excludeGraphTypesFilter = "";
   let excludeGraphTypeValues = "";
@@ -77,9 +78,13 @@ async function getSubjectTypes(subjects: string[], stream, config) {
       .join("\n ");
     excludeGraphTypeValues = `VALUES ?excludeGraphType { ${excludeGraphTypeValues} }`;
     excludeGraphTypesFilter = `FILTER NOT EXISTS {
-      ?targetGraph a ?excludedGraphType.
+      ?g a ?excludedGraphType.
     }`;
   }
+
+  graphFilter = `${graphFilter}
+  ${excludeGraphsFilter}
+  ${excludeGraphTypesFilter}`;
 
   const result = await querySudo(
     `
@@ -88,12 +93,11 @@ async function getSubjectTypes(subjects: string[], stream, config) {
     WHERE {
       VALUES ?s { ${subjects.map(sparqlEscapeUri).join(" ")} }
       ${excludeGraphTypeValues}
-      GRAPH ?targetGraph {
+      GRAPH ?g {
         ?s a ?type.
       }
 
-      ${excludeGraphsFilter}
-      ${excludeGraphTypesFilter}
+      ${graphFilter}
     }
   `
   );
@@ -119,7 +123,7 @@ async function getDifferences(
     .join("\n");
   const filter = config[stream].entities[type].instanceFilter || "";
 
-  const excludedGraphs = config[stream].graphsToExclude;
+  const excludedGraphs = config[stream].graphsToExclude || [];
   excludedGraphs.push(HEALING_DUMP_GRAPH);
   excludedGraphs.push(HEALING_TRANSFORMED_GRAPH);
   const graphFilter = config[stream].graphFilter || "";
@@ -127,7 +131,7 @@ async function getDifferences(
     .map((graph: string) => sparqlEscapeUri(graph))
     .join(", ");
 
-  const graphTypesToExclude = config[stream].graphTypesToExclude
+  const graphTypesToExclude = (config[stream].graphTypesToExclude || [])
     .map((graph: string) => sparqlEscapeUri(graph))
     .join("\n");
 
