@@ -5,7 +5,8 @@ import fs from "fs";
 import { initialization } from "./config/initialization";
 import { v4 as uuid } from "uuid";
 import { querySudo } from "@lblod/mu-auth-sudo";
-import { DIRECT_DB_ENDPOINT, LDES_BASE } from "./config";
+import { CRON_CHECKPOINT, DIRECT_DB_ENDPOINT, LDES_BASE } from "./config";
+import { CronJob } from "cron";
 
 const limit = parseInt(process.env.INITIAL_STATE_LIMIT || "10000");
 const MAX_PAGE_SIZE_BYTES = parseInt(
@@ -49,10 +50,14 @@ function createTtlSparqlClient(turtle = true) {
 
 const ttlClient = createTtlSparqlClient();
 
-async function generateVersionedUris(type) {
-  await ttlClient
-    .query(
-      `
+async function generateVersionedUris(
+  type: string,
+  filter: string,
+  graphFilter: string
+) {
+  // filtering here makes it way easier later on. we should simply consider all instances of the type with a versioned uri
+  // because the filter has already been applied to those instances
+  const query = `
     PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
 
     INSERT {
@@ -62,67 +67,69 @@ async function generateVersionedUris(type) {
     } WHERE {
       {
         SELECT DISTINCT ?s {
-          ?s a ${sparqlEscapeUri(type)}.
-          FILTER NOT EXISTS {
-            ?s ext:versionedUri ?existing.
+          GRAPH ?g {
+            ?s a ${sparqlEscapeUri(type)}.
+            ${filter}
           }
+          ${graphFilter}
         }
       }
       BIND(URI(CONCAT("http://mu.semte.ch/services/ldes-time-fragmenter/versioned/", STRUUID())) as ?versionedUri)
     }
-  `
-    )
-    .executeRaw();
+  `;
+  console.log(query);
+  await ttlClient.query(query).executeRaw();
   console.log("generated versioned uris");
 }
 
 async function cleanupVersionedUris() {
   await ttlClient
-    .query(
-      `
-    PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
-
-    DELETE {
-      GRAPH <http://mu.semte.ch/graphs/ldes-initializer> {
-        ?s ext:versionedUri ?versionedUri .
-      }
-    } WHERE {
-      GRAPH <http://mu.semte.ch/graphs/ldes-initializer> {
-        ?s ext:versionedUri ?versionedUri .
-      }
-    }`
-    )
+    .query("DROP SILENT GRAPH <http://mu.semte.ch/graphs/ldes-initializer>")
     .executeRaw();
   console.log("cleaned up versioned uris");
 }
 
 async function countMatchesForType(stream, type) {
   const filter = initialization[stream]?.[type]?.filter || "";
+  const graphFilter = initialization[stream]?.[type]?.graphFilter || "";
   const res = await querySudo(
     `
     SELECT (COUNT(DISTINCT ?s) as ?count) WHERE {
-      ?s a ${sparqlEscapeUri(type)}.
-      ${filter}
+      GRAPH ?g {
+        ?s a ${sparqlEscapeUri(type)}.
+        ${filter}
+      }
+      ${graphFilter}
     }`
   );
   return parseInt(res.results.bindings[0].count.value);
 }
 
-function getCurrentFile(ldesStream) {
+function getCurrentFile(ldesStream: string, checkpoint?: string) {
   let highestNumber = 1;
-  fs.readdirSync(`/data/${ldesStream}`).forEach((file) => {
+  let directory = `/data/${ldesStream}`;
+  if (checkpoint) {
+    directory = `${directory}/checkpoints/${checkpoint}`;
+  }
+  fs.readdirSync(directory).forEach((file) => {
+    if (file.startsWith("checkpoints")) {
+      return;
+    }
     const number = parseInt(file.split(".")[0]);
     if (number > highestNumber) {
       highestNumber = number;
     }
   });
-  return `${highestNumber}.ttl`;
+  return {
+    file: `${directory}/${highestNumber}.ttl`,
+    directory,
+    number: highestNumber,
+  };
 }
 
-async function endFile(file: string, stream: fs.WriteStream) {
+async function endFile(fileCount: number, stream: fs.WriteStream) {
   const uuidForRelation = uuid();
   const uriForRelation = `<http://mu.semte.ch/services/ldes-time-fragmenter/relations/${uuidForRelation}>`;
-  const fileCount = parseInt(file.split(".")[0]);
   const triplesToAdd = `
   <./${fileCount}> <https://w3id.org/tree#relation> ${uriForRelation} .
   ${uriForRelation} <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <https://w3id.org/tree#GreaterThanOrEqualToRelation> .
@@ -133,31 +140,60 @@ async function endFile(file: string, stream: fs.WriteStream) {
   stream.write(triplesToAdd);
 }
 
+async function connectCheckpointToLastLDESPage(
+  ldesStream: string,
+  checkpoint: string
+) {
+  let { number: fileCount } = getCurrentFile(ldesStream, checkpoint);
+  const { number: realStreamFileCount } = getCurrentFile(ldesStream);
+
+  const uuidForRelation = uuid();
+  const uriForRelation = `<http://mu.semte.ch/services/ldes-time-fragmenter/relations/${uuidForRelation}>`;
+  // the greater than or equal here is a bit of a lie: the last page of the stream may actually
+  // contain older entries but it doesn't matter because these entries will be replaced by the
+  // newer ones later in the stream and we will still be up to date
+  const triplesToAdd = `
+  <./${fileCount}> <https://w3id.org/tree#relation> ${uriForRelation} .
+  ${uriForRelation} <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <https://w3id.org/tree#GreaterThanOrEqualToRelation> .
+  ${uriForRelation} <https://w3id.org/tree#value> "${new Date().toISOString()}"^^<http://www.w3.org/2001/XMLSchema#dateTime> .
+  ${uriForRelation} <https://w3id.org/tree#node> <../../${realStreamFileCount}> .
+  ${uriForRelation} <https://w3id.org/tree#path> <http://www.w3.org/ns/prov#generatedAtTime> .\n`;
+
+  currentStream.write(triplesToAdd);
+  currentStream.end();
+}
+
 async function startFile(
   streamName: string,
-  file: string,
-  stream: fs.WriteStream
+  fileCount: number,
+  stream: fs.WriteStream,
+  checkpoint?: string
 ) {
-  const fileCount = parseInt(file.split(".")[0]);
   console.log(`[${streamName}]  starting new file ${fileCount}`);
   const streamUri = `<${LDES_BASE}${streamName}>`;
+  const base = checkpoint ? `./checkpoints/${checkpoint}` : ".";
   const triplesToAdd = `
   ${streamUri} <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/ldes#EventStream> .
+
   ${streamUri} <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <https://w3id.org/tree#Collection> .
   ${streamUri} <https://w3id.org/tree#view> <./1> .
-  <./${fileCount}> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <https://w3id.org/tree#Node> .\n`;
+  <${base}/${fileCount}> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <https://w3id.org/tree#Node> .\n`;
 
   stream.write(triplesToAdd);
 }
 
-async function writeToCurrentFile(ldesStream: string, contents: string) {
+async function writeToCurrentFile(
+  ldesStream: string,
+  contents: string,
+  checkpointName?: string
+) {
   currentStream.write(contents + "\n");
   currentStreamCharCount += contents.length;
   if (currentStreamCharCount > MAX_PAGE_SIZE_BYTES) {
     console.log(
       `[${ldesStream}]  reached max page size ${currentStreamCharCount} > ${MAX_PAGE_SIZE_BYTES}, starting new file`
     );
-    await forceNewFile(ldesStream);
+    await forceNewFile(ldesStream, checkpointName);
   } else {
     console.log(
       `[${ldesStream}]  current page size ${currentStreamCharCount} < ${MAX_PAGE_SIZE_BYTES}`
@@ -165,22 +201,24 @@ async function writeToCurrentFile(ldesStream: string, contents: string) {
   }
 }
 
-async function writeInitialStateForStreamAndType(ldesStream, type) {
+async function writeInitialStateForStreamAndType(
+  ldesStream: string,
+  type: string,
+  checkpointName?: string
+) {
   console.log(`[${ldesStream}]  writing initial state for ${type}`);
 
   let offset = 0;
   const count = await countMatchesForType(ldesStream, type);
 
-  const filter = initialization[ldesStream]?.[type]?.filter || "";
+  const graphFilter = initialization[ldesStream]?.[type]?.graphFilter || "";
   const extraConstruct =
     initialization[ldesStream]?.[type]?.extraConstruct || "";
   const extraWhere = initialization[ldesStream]?.[type]?.extraWhere || "";
 
   const now = sparqlEscapeDateTime(new Date().toISOString());
   while (offset < count) {
-    const res = await ttlClient
-      .query(
-        `
+    const query = `
       PREFIX extlmb: <http://mu.semte.ch/vocabularies/ext/lmb/>
       PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
 
@@ -201,16 +239,14 @@ async function writeInitialStateForStreamAndType(ldesStream, type) {
           FILTER (?p != ext:versionedUri)
         }
 
-        ?g <http://mu.semte.ch/vocabularies/ext/ownedBy> ?bestuurseenheid.
-
-        ${filter}
+        ${graphFilter}
 
         ${extraWhere}
-      }`
-      )
-      .executeRaw();
+      }`;
+    console.log(query);
+    const res = await ttlClient.query(query).executeRaw();
 
-    await writeToCurrentFile(ldesStream, res.body);
+    await writeToCurrentFile(ldesStream, res.body, checkpointName);
 
     const written = Math.min(count, offset + limit);
     console.log(
@@ -224,52 +260,50 @@ async function writeInitialStateForStreamAndType(ldesStream, type) {
   console.log(`[${ldesStream}]  done writing initial state for ${type}`);
 }
 
-async function forceNewFile(ldesStream: string) {
+async function forceNewFile(ldesStream: string, checkpoint?: string) {
   if (currentStream) {
     currentStream.end();
-    await new Promise((resolve) => {
-      currentStream.on("finish", resolve);
+  }
+
+  let {
+    file: currentFile,
+    directory,
+    number,
+  } = getCurrentFile(ldesStream, checkpoint);
+  if (fs.existsSync(currentFile)) {
+    const endStream = fs.createWriteStream(currentFile, {
+      flags: "a",
     });
-  }
 
-  let currentFile = getCurrentFile(ldesStream);
-  if (fs.existsSync(`/data/${ldesStream}/${currentFile}`)) {
-    const endStream = fs.createWriteStream(
-      `/data/${ldesStream}/${currentFile}`,
-      {
-        flags: "a",
-      }
-    );
-
-    await endFile(currentFile, endStream);
+    await endFile(number, endStream);
     endStream.end();
-    await new Promise((resolve) => endStream.on("finish", resolve));
-    const currentCount = parseInt(currentFile.split(".")[0]);
-    currentFile = `${currentCount + 1}.ttl`;
+    currentFile = `${directory}/${number + 1}.ttl`;
   }
 
-  const stream = fs.createWriteStream(`/data/${ldesStream}/${currentFile}`, {
+  const stream = fs.createWriteStream(currentFile, {
     flags: "a",
   });
-  await startFile(ldesStream, currentFile, stream);
+  await startFile(ldesStream, number, stream, checkpoint);
   currentStream = stream;
   currentStreamCharCount = 0;
+  return { number, directory, currentFile };
 }
 
 export async function writeInitialState() {
   console.log("writing initial state");
 
-  await cleanupVersionedUris();
-
   for (const ldesStream in initialization) {
     if (!fs.existsSync(`/data/${ldesStream}`)) {
       fs.mkdirSync(`/data/${ldesStream}`);
     }
+    await cleanupVersionedUris();
     // force new file twice so we get an empty first page that can easily be fetched a lot and later modified to point to shortcuts
     await forceNewFile(ldesStream);
     await forceNewFile(ldesStream);
     for (const type in initialization[ldesStream]) {
-      await generateVersionedUris(type);
+      const graphFilter = initialization[ldesStream]?.[type]?.graphFilter || "";
+      const filter = initialization[ldesStream]?.[type]?.filter || "";
+      await generateVersionedUris(type, filter, graphFilter);
       await writeInitialStateForStreamAndType(ldesStream, type);
     }
     // this way we have a fresh small file from which to start the regular process
@@ -278,3 +312,82 @@ export async function writeInitialState() {
 
   console.log("done writing initial state");
 }
+
+function ensureCheckpointDir(ldesStream: string) {
+  const checkpointName = new Date()
+    .toISOString()
+    .split(":")
+    .join("-")
+    .split(".")[0];
+  const checkpointDir = `/data/${ldesStream}/checkpoints/${checkpointName}`;
+  if (!fs.existsSync(checkpointDir)) {
+    fs.mkdirSync(checkpointDir, { recursive: true });
+  }
+  return checkpointName;
+}
+
+async function writeCheckpointRef(ldesStream: string, checkpointName: string) {
+  let directory = `/data/${ldesStream}`;
+  const stream = fs.createWriteStream(`${directory}/checkpoints.ttl`, {
+    flags: "a",
+  });
+  console.log(
+    `[${ldesStream}]  writing checkpoint reference ${checkpointName}`
+  );
+  const streamUri = `<${LDES_BASE}${ldesStream}>`;
+  const triplesToAdd = `
+    ${streamUri} <http://mu.semte.ch/vocabularies/ext/ldesCheckpoint> <./checkpoints/${checkpointName}/1> .
+    <./checkpoints/${checkpointName}/1> <http://purl.org/dc/terms/modified> "${new Date().toISOString()}"^^<http://www.w3.org/2001/XMLSchema#dateTime> .\n`;
+
+  stream.write(triplesToAdd);
+  stream.end();
+}
+
+export async function writeCheckpoint() {
+  console.log("starting checkpoint");
+
+  for (const ldesStream in initialization) {
+    const checkpointName = ensureCheckpointDir(ldesStream);
+    await cleanupVersionedUris();
+
+    // no need to force the double new file here, we don't expect checkpoint to be fetched often
+    await forceNewFile(ldesStream, checkpointName);
+    for (const type in initialization[ldesStream]) {
+      const graphFilter = initialization[ldesStream]?.[type]?.graphFilter || "";
+      const filter = initialization[ldesStream]?.[type]?.filter || "";
+      await generateVersionedUris(type, filter, graphFilter);
+      await writeInitialStateForStreamAndType(ldesStream, type, checkpointName);
+    }
+    await connectCheckpointToLastLDESPage(ldesStream, checkpointName);
+    await writeCheckpointRef(ldesStream, checkpointName);
+  }
+
+  console.log("done writing checkpoint");
+}
+
+let isRunning = false;
+const checkpointCron = async () => {
+  console.log(
+    "*******************************************************************"
+  );
+  console.log(
+    `*** Checkpoint triggered by CRON ${new Date().toISOString()} ***`
+  );
+  console.log(
+    "*******************************************************************"
+  );
+
+  if (isRunning) {
+    return;
+  }
+  isRunning = true;
+  await writeCheckpoint();
+  isRunning = false;
+};
+
+export const cronjob = CRON_CHECKPOINT
+  ? CronJob.from({
+      cronTime: CRON_CHECKPOINT,
+      onTick: checkpointCron,
+    })
+  : null;

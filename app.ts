@@ -8,7 +8,9 @@ import { Changeset } from "./types";
 import { writeInitialState } from "./writeInitialState";
 
 import { cronjob as autoHealing } from "./self-healing/cron";
-import { AUTO_HEALING } from "./config";
+import { AUTO_HEALING, CRON_CHECKPOINT, LDES_BASE } from "./config";
+import { ttlFileAsContentType } from "./util/ttlFileAsContentType";
+import { cronjob as checkpointCron } from "./writeInitialState";
 
 app.use(
   bodyParser.json({
@@ -31,6 +33,35 @@ app.post("/publish", async function (req: Request, res: Response) {
   }
 });
 
+app.get("/checkpoints/:stream", async function (req: Request, res: Response) {
+  const acceptedContentTypes = [
+    "application/ld+json",
+    "application/n-quads",
+    "application/n-triples",
+    "application/trig",
+    "text/n3",
+    "text/turtle",
+  ];
+
+  try {
+    const contentType = req.accepts(acceptedContentTypes);
+    if (!contentType) {
+      res.status(406).send("Not Acceptable");
+      return;
+    }
+    const stream = req.params.stream;
+    res.header("Content-Type", contentType);
+    ttlFileAsContentType(
+      `/data/${stream}/checkpoints.ttl`,
+      contentType,
+      LDES_BASE
+    ).pipe(res);
+  } catch (e) {
+    console.error(e);
+    res.status(500).send();
+  }
+});
+
 new Promise(async (resolve) => {
   if (process.env.WRITE_INITIAL_STATE === "true") {
     await writeInitialState();
@@ -38,6 +69,9 @@ new Promise(async (resolve) => {
 
   if (AUTO_HEALING == "true") {
     autoHealing.start();
+  }
+  if (checkpointCron) {
+    checkpointCron.start();
   }
 
   resolve(true);
