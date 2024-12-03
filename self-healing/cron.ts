@@ -123,13 +123,16 @@ async function determineNextPage(
   stream: string,
   currentPage: PagePointer
 ): Promise<PagePointer | null> {
+  const pathWithoutEndSlash = currentPage.path.endsWith("/")
+    ? currentPage.path.slice(0, -1)
+    : currentPage.path;
   const query = `
     SELECT ?page WHERE {
       ?oldPage <https://w3id.org/tree#relation> ?relation .
       ?relation a <https://w3id.org/tree#GreaterThanOrEqualToRelation> .
       ?relation <https://w3id.org/tree#value> ?date .
       ?relation <https://w3id.org/tree#node> ?page .
-      FILTER(STRENDS(STR(?oldPage), "${currentPage.path}/${currentPage.file}"))
+      FILTER(STRENDS(STR(?oldPage), "${pathWithoutEndSlash}/${currentPage.file}"))
     } LIMIT 1
   `;
   const result = await querySudo(query);
