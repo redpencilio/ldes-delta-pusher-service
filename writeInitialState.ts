@@ -78,15 +78,34 @@ async function generateVersionedUris(
     }
   `;
   console.log(query);
-  await ttlClient.query(query).executeRaw();
+  await executeDirectQuery(query, ttlClient);
   console.log("generated versioned uris");
 }
 
 async function cleanupVersionedUris() {
-  await ttlClient
-    .query("DROP SILENT GRAPH <http://mu.semte.ch/graphs/ldes-initializer>")
-    .executeRaw();
+  await executeDirectQuery(
+    "DROP SILENT GRAPH <http://mu.semte.ch/graphs/ldes-initializer>",
+    ttlClient
+  );
   console.log("cleaned up versioned uris");
+}
+
+async function executeDirectQuery(
+  query: string,
+  ttlClient: SparqlClient,
+  retries = 5
+) {
+  try {
+    return await ttlClient.query(query).executeRaw();
+  } catch (e) {
+    if (retries > 0) {
+      console.log(`Retrying query, ${retries} retries left`);
+      return executeDirectQuery(query, ttlClient, retries - 1);
+    } else {
+      console.log(`Failed to execute query after 5 retries`);
+      throw e;
+    }
+  }
 }
 
 async function countMatchesForType(stream, type) {
@@ -244,7 +263,7 @@ async function writeInitialStateForStreamAndType(
         ${extraWhere}
       }`;
     console.log(query);
-    const res = await ttlClient.query(query).executeRaw();
+    const res = await executeDirectQuery(query, ttlClient);
 
     await writeToCurrentFile(ldesStream, res.body, checkpointName);
 
