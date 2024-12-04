@@ -234,6 +234,7 @@ async function writeInitialStateForStreamAndType(
   const extraConstruct =
     initialization[ldesStream]?.[type]?.extraConstruct || "";
   const extraWhere = initialization[ldesStream]?.[type]?.extraWhere || "";
+  const instanceFilter = initialization[ldesStream]?.[type]?.filter || "";
 
   const now = sparqlEscapeDateTime(new Date().toISOString());
   while (offset < count) {
@@ -256,6 +257,7 @@ async function writeInitialStateForStreamAndType(
         GRAPH ?g {
           ?s ?p ?o .
           FILTER (?p != ext:versionedUri)
+          ${instanceFilter}
         }
 
         ${graphFilter}
