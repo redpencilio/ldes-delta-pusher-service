@@ -5,6 +5,7 @@ import { healEntities } from "./heal-ldes-data";
 import {
   clearHealingTempGraphs,
   insertLdesPageToDumpGraph,
+  deleteDuplicatesForValues,
 } from "./upload-entities-to-db";
 import { transformLdesDataToEntities } from "./transform-ldes-data-to-entities";
 import { CRON_HEALING } from "../config";
@@ -61,7 +62,8 @@ async function loadStreamIntoDumpGraph(stream: string): Promise<void> {
   while (!isLdesInsertedInDatabase && currentPage) {
     const turtleText = await fetchPage(currentPage.path, currentPage.file);
     if (turtleText) {
-      await insertLdesPageToDumpGraph(turtleText);
+      const lastBatchEntities = await insertLdesPageToDumpGraph(turtleText);
+      await deleteDuplicatesForValues(lastBatchEntities);
     } else {
       isLdesInsertedInDatabase = true;
     }

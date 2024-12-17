@@ -29,19 +29,90 @@ export async function clearHealingTempGraphs(): Promise<void> {
 
 export async function insertLdesPageToDumpGraph(
   turtleText: string
-): Promise<void> {
+): Promise<string[]> {
   const tripleStore = new ForkingStore();
   const graph = new NamedNode("http://data.lblod.info/triples");
   tripleStore.parse(turtleText, graph, "text/turtle");
   const statements = [...tripleStore.graph.statements];
   const tripleCount = statements.length;
+  let batch: any[] = [];
   for (let index = 0; index < tripleCount; index += HEALING_BATCH_SIZE) {
-    const batch = statements.splice(0, HEALING_BATCH_SIZE);
+    batch = statements.splice(0, HEALING_BATCH_SIZE);
     if (batch.length === 0) {
       continue;
     }
     await addTriplesToLDesDumpGraph(mapStatementsToTriple(batch).join("\n"));
   }
+  const lastBatchEntities = batch
+    .filter((statement) => {
+      return (
+        statement.predicate.value === "http://purl.org/dc/terms/isVersionOf"
+      );
+    })
+    .map((statement) => {
+      return statement.object.value;
+    });
+  return lastBatchEntities;
+}
+
+export async function deleteDuplicatesForValues(values: string[]) {
+  // using ldesstream2 in case the stream name changed
+  // we're sure to still be following the same stream because
+  // the dump graph is cleared at the start
+  await updateSudo(
+    `
+    PREFIX tree: <https://w3id.org/tree#>
+    PREFIX dct: <http://purl.org/dc/terms/>
+    PREFIX prov: <http://www.w3.org/ns/prov#>
+    PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
+
+    INSERT {
+      GRAPH ${sparqlEscapeUri(HEALING_DUMP_GRAPH)} {
+        ?toDelete ext:willDelete true.
+      }
+    }
+    WHERE {
+      GRAPH ${sparqlEscapeUri(HEALING_DUMP_GRAPH)} {
+        VALUES ?entity {
+          ${values.map((value) => sparqlEscapeUri(value)).join("\n")}
+        }
+        ?toDelete dct:isVersionOf ?entity;
+                  prov:generatedAtTime ?time.
+
+        ?ldesEntityTwo dct:isVersionOf ?entity;
+                       prov:generatedAtTime ?otherTime.
+
+        FILTER(?ldesEntityTwo != ?toDelete)
+
+        FILTER( ?otherTime > ?time )
+      }
+    }
+  `,
+    {},
+    { sparqlEndpoint: DIRECT_DB_ENDPOINT }
+  );
+
+  await updateSudo(
+    `
+    PREFIX tree: <https://w3id.org/tree#>
+    PREFIX dct: <http://purl.org/dc/terms/>
+    PREFIX prov: <http://www.w3.org/ns/prov#>
+    PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
+    DELETE {
+      GRAPH ${sparqlEscapeUri(HEALING_DUMP_GRAPH)} {
+        ?ldesStream tree:member ?toDelete.
+        ?toDelete ?p ?o.
+      }
+    }
+    WHERE {
+      GRAPH ${sparqlEscapeUri(HEALING_DUMP_GRAPH)} {
+        ?toDelete ext:willDelete true.
+        ?toDelete ?p ?o.
+      }
+    }`,
+    {},
+    { sparqlEndpoint: DIRECT_DB_ENDPOINT }
+  );
 }
 
 function mapStatementsToTriple(statements: any[]) {
