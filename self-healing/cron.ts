@@ -69,6 +69,7 @@ async function loadStreamIntoDumpGraph(stream: string): Promise<void> {
     }
     currentPage = await determineNextPage(stream, currentPage);
   }
+  await deleteDuplicatesForValues();
 }
 
 async function fetchPage(stream: string, page: number): Promise<string | null> {
