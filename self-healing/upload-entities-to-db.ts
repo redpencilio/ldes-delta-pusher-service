@@ -55,7 +55,19 @@ export async function insertLdesPageToDumpGraph(
   return lastBatchEntities;
 }
 
-export async function deleteDuplicatesForValues(values: string[]) {
+let valuesToDelete: Set<string> = new Set();
+export async function deleteDuplicatesForValues(values?: string[]) {
+  // keeps the list of values to delete in memory until it becomes large enough. Then purge.
+  // if values is undefined, purge now.
+
+  valuesToDelete = new Set([...valuesToDelete, ...(values || [])]);
+  if (valuesToDelete.size <= 1000 && values) {
+    return;
+  }
+  if (valuesToDelete.size === 0) {
+    return; // nothing to delete even if forced to can't do anything
+  }
+
   // using ldesstream2 in case the stream name changed
   // we're sure to still be following the same stream because
   // the dump graph is cleared at the start
@@ -74,7 +86,9 @@ export async function deleteDuplicatesForValues(values: string[]) {
     WHERE {
       GRAPH ${sparqlEscapeUri(HEALING_DUMP_GRAPH)} {
         VALUES ?entity {
-          ${values.map((value) => sparqlEscapeUri(value)).join("\n")}
+          ${[...valuesToDelete]
+            .map((value) => sparqlEscapeUri(value))
+            .join("\n")}
         }
         ?toDelete dct:isVersionOf ?entity;
                   prov:generatedAtTime ?time.
@@ -113,6 +127,8 @@ export async function deleteDuplicatesForValues(values: string[]) {
     {},
     { sparqlEndpoint: DIRECT_DB_ENDPOINT }
   );
+
+  valuesToDelete = new Set();
 }
 
 function mapStatementsToTriple(statements: any[]) {
