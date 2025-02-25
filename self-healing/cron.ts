@@ -8,7 +8,7 @@ import {
   deleteDuplicatesForValues,
 } from "./upload-entities-to-db";
 import { transformLdesDataToEntities } from "./transform-ldes-data-to-entities";
-import { CRON_HEALING } from "../config";
+import { CRON_HEALING } from "../environment";
 import { HealingConfig, getHealingConfig } from "../config/healing";
 import { ttlFileAsString } from "../util/ttlFileAsContentType";
 

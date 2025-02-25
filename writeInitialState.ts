@@ -1,11 +1,12 @@
-import { SparqlClient } from "sparql-client-2";
+import sparqlClient from "sparql-client-2";
+const { SparqlClient } = sparqlClient;
 import { sparqlEscapeUri, sparqlEscapeDateTime } from "mu";
 import httpContext from "express-http-context";
 import fs from "fs";
 import { initialization } from "./config/initialization";
 import { v4 as uuid } from "uuid";
 import { querySudo } from "@lblod/mu-auth-sudo";
-import { CRON_CHECKPOINT, DIRECT_DB_ENDPOINT, LDES_BASE } from "./config";
+import { CRON_CHECKPOINT, DIRECT_DB_ENDPOINT, LDES_BASE } from "./environment";
 import { CronJob } from "cron";
 
 const limit = parseInt(process.env.INITIAL_STATE_LIMIT || "10000");
@@ -66,7 +67,7 @@ async function generateVersionedUris(
       }
     } WHERE {
       {
-        SELECT DISTINCT ?s {
+        SELECT DISTINCT ?s WHERE {
           GRAPH ?g {
             ?s a ${sparqlEscapeUri(type)}.
             ${filter}
@@ -74,7 +75,11 @@ async function generateVersionedUris(
           ${graphFilter}
         }
       }
-      BIND(URI(CONCAT("http://mu.semte.ch/services/ldes-time-fragmenter/versioned/", STRUUID())) as ?versionedUri)
+      OPTIONAL {
+        ?s ext:fakeUuidPredAsWeWantSomethingNew ?fakeUuid.
+      }
+      BIND(IF(BOUND(?fakeUuid), ?fakeUuid, STRUUID()) as ?id)
+      BIND(URI(CONCAT("http://mu.semte.ch/services/ldes-time-fragmenter/versioned/", ?id)) as ?versionedUri)
     }
   `;
   console.log(query);

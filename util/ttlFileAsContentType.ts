@@ -1,5 +1,4 @@
-const ttl_read = require("@graphy/content.ttl.read");
-
+import ttl_read from "@graphy/content.ttl.read";
 import fs from "fs";
 import path from "path";
 import jsstream from "stream";

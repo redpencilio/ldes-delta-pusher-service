@@ -6,7 +6,7 @@ import {
   HEALING_TRANSFORMED_GRAPH,
   DIRECT_DB_ENDPOINT,
   HEALING_LIMIT,
-} from "../config";
+} from "../environment";
 import { HealingConfig } from "../config/healing";
 
 export async function healEntities(

@@ -8,7 +8,7 @@ import { Changeset } from "./types";
 import { writeInitialState } from "./writeInitialState";
 
 import { cronjob as autoHealing } from "./self-healing/cron";
-import { AUTO_HEALING, CRON_CHECKPOINT, LDES_BASE } from "./config";
+import { AUTO_HEALING, LDES_BASE } from "./environment";
 import { ttlFileAsContentType } from "./util/ttlFileAsContentType";
 import { cronjob as checkpointCron } from "./writeInitialState";
 

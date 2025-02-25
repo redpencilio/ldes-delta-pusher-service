@@ -2,11 +2,11 @@ export const LDES_FRAGMENTER = process.env.LDES_FRAGMENTER as
   | string
   | undefined;
 export const LDES_FOLDER = process.env.LDES_FOLDER as string;
-export const DATA_FOLDER = process.env.DATA_FOLDER || "/data" as string;
+export const DATA_FOLDER = process.env.DATA_FOLDER || ("/data" as string);
 export const AUTO_HEALING = process.env.AUTO_HEALING ?? false;
 export const CRON_HEALING = process.env.CRON_HEALING ?? "0 * * * *"; // Every hour
 export const CRON_CHECKPOINT = process.env.CRON_CHECKPOINT;
-export const HEALING_LIMIT = process.env.HEALING_LIMIT || 1000;
+export const HEALING_LIMIT = process.env.HEALING_LIMIT || 3000;
 export const HEALING_BATCH_SIZE = parseInt(
   process.env.HEALING_BATCH_SIZE ?? "100"
 );
@@ -33,9 +33,10 @@ export const LDES_BASE = ldesBase;
 process.env.BASE_URL = LDES_BASE; // required by the ldes-producer
 
 if (!LDES_FOLDER?.length) {
-  throw new Error('Please set the "LDES_FOLDER" environment variable. e.g: ldes-mow-registry');
+  throw new Error(
+    'Please set the "LDES_FOLDER" environment variable. e.g: ldes-mow-registry'
+  );
 }
-
 
 console.log("\n Configuration:");
 console.log(`\t AUTO_HEALING: ${AUTO_HEALING}`);

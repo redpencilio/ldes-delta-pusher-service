@@ -7,8 +7,8 @@ import {
   HEALING_BATCH_SIZE,
   HEALING_DUMP_GRAPH,
   HEALING_TRANSFORMED_GRAPH,
-} from "../config";
-import { DIRECT_DB_ENDPOINT } from "../config";
+} from "../environment";
+import { DIRECT_DB_ENDPOINT } from "../environment";
 
 export async function clearHealingTempGraphs(): Promise<void> {
   await updateSudo(
