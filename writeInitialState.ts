@@ -97,7 +97,7 @@ async function cleanupVersionedUris() {
 
 async function executeDirectQuery(
   query: string,
-  ttlClient: SparqlClient,
+  ttlClient: typeof SparqlClient,
   retries = 5
 ) {
   try {
