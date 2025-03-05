@@ -1,8 +1,8 @@
 import { querySudo, updateSudo } from "@lblod/mu-auth-sudo";
 import { sparqlEscapeUri } from "mu";
 
-import { HEALING_DUMP_GRAPH, HEALING_TRANSFORMED_GRAPH } from "../config";
-import { DIRECT_DB_ENDPOINT } from "../config";
+import { HEALING_DUMP_GRAPH, HEALING_TRANSFORMED_GRAPH } from "../environment";
+import { DIRECT_DB_ENDPOINT } from "../environment";
 
 export async function transformLdesDataToEntities() {
   await transformRemainingEntities();

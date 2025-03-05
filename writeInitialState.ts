@@ -1,11 +1,17 @@
-import { SparqlClient } from "sparql-client-2";
+import sparqlClient from "sparql-client-2";
+const { SparqlClient } = sparqlClient;
 import { sparqlEscapeUri, sparqlEscapeDateTime } from "mu";
 import httpContext from "express-http-context";
 import fs from "fs";
 import { initialization } from "./config/initialization";
 import { v4 as uuid } from "uuid";
 import { querySudo } from "@lblod/mu-auth-sudo";
-import { CRON_CHECKPOINT, DIRECT_DB_ENDPOINT, LDES_BASE } from "./config";
+import {
+  CRON_CHECKPOINT,
+  DATA_FOLDER,
+  DIRECT_DB_ENDPOINT,
+  LDES_BASE,
+} from "./environment";
 import { CronJob } from "cron";
 
 const limit = parseInt(process.env.INITIAL_STATE_LIMIT || "10000");
@@ -66,7 +72,7 @@ async function generateVersionedUris(
       }
     } WHERE {
       {
-        SELECT DISTINCT ?s {
+        SELECT DISTINCT ?s WHERE {
           GRAPH ?g {
             ?s a ${sparqlEscapeUri(type)}.
             ${filter}
@@ -74,7 +80,11 @@ async function generateVersionedUris(
           ${graphFilter}
         }
       }
-      BIND(URI(CONCAT("http://mu.semte.ch/services/ldes-time-fragmenter/versioned/", STRUUID())) as ?versionedUri)
+      OPTIONAL {
+        ?s ext:fakeUuidPredAsWeWantSomethingNew ?fakeUuid.
+      }
+      BIND(IF(BOUND(?fakeUuid), ?fakeUuid, STRUUID()) as ?id)
+      BIND(URI(CONCAT("http://mu.semte.ch/services/ldes-time-fragmenter/versioned/", ?id)) as ?versionedUri)
     }
   `;
   console.log(query);
@@ -126,7 +136,7 @@ async function countMatchesForType(stream, type) {
 
 function getCurrentFile(ldesStream: string, checkpoint?: string) {
   let highestNumber = 1;
-  let directory = `/data/${ldesStream}`;
+  let directory = `${DATA_FOLDER}/${ldesStream}`;
   if (checkpoint) {
     directory = `${directory}/checkpoints/${checkpoint}`;
   }
@@ -314,8 +324,8 @@ export async function writeInitialState() {
   console.log("writing initial state");
 
   for (const ldesStream in initialization) {
-    if (!fs.existsSync(`/data/${ldesStream}`)) {
-      fs.mkdirSync(`/data/${ldesStream}`);
+    if (!fs.existsSync(`${DATA_FOLDER}/${ldesStream}`)) {
+      fs.mkdirSync(`${DATA_FOLDER}/${ldesStream}`);
     }
     await cleanupVersionedUris();
     // force new file twice so we get an empty first page that can easily be fetched a lot and later modified to point to shortcuts
@@ -340,7 +350,7 @@ function ensureCheckpointDir(ldesStream: string) {
     .split(":")
     .join("-")
     .split(".")[0];
-  const checkpointDir = `/data/${ldesStream}/checkpoints/${checkpointName}`;
+  const checkpointDir = `${DATA_FOLDER}/${ldesStream}/checkpoints/${checkpointName}`;
   if (!fs.existsSync(checkpointDir)) {
     fs.mkdirSync(checkpointDir, { recursive: true });
   }
@@ -348,7 +358,7 @@ function ensureCheckpointDir(ldesStream: string) {
 }
 
 async function writeCheckpointRef(ldesStream: string, checkpointName: string) {
-  let directory = `/data/${ldesStream}`;
+  let directory = `${DATA_FOLDER}/${ldesStream}`;
   const stream = fs.createWriteStream(`${directory}/checkpoints.ttl`, {
     flags: "a",
   });

@@ -8,7 +8,7 @@ import { Changeset } from "./types";
 import { writeInitialState } from "./writeInitialState";
 
 import { cronjob as autoHealing } from "./self-healing/cron";
-import { AUTO_HEALING, CRON_CHECKPOINT, LDES_BASE } from "./config";
+import { AUTO_HEALING, DATA_FOLDER, LDES_BASE } from "./environment";
 import { ttlFileAsContentType } from "./util/ttlFileAsContentType";
 import { cronjob as checkpointCron } from "./writeInitialState";
 
@@ -52,7 +52,7 @@ app.get("/checkpoints/:stream", async function (req: Request, res: Response) {
     const stream = req.params.stream;
     res.header("Content-Type", contentType);
     ttlFileAsContentType(
-      `/data/${stream}/checkpoints.ttl`,
+      `${DATA_FOLDER}/${stream}/checkpoints.ttl`,
       contentType,
       LDES_BASE
     ).pipe(res);
