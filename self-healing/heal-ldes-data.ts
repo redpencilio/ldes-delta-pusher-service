@@ -227,7 +227,7 @@ async function erectMissingTombstones(
     const toExclude = excludedGraphs
       .map((graph: string) => sparqlEscapeUri(graph))
       .join(", ");
-    graphFilter += `FILTER(?targetGraph NOT IN (${toExclude}))`;
+    graphFilter += `FILTER(?g NOT IN (${toExclude}))`;
   }
   let excludeGraphTypeValues = "";
   if (graphTypesToExclude?.length > 0) {
@@ -236,7 +236,7 @@ async function erectMissingTombstones(
       .join("\n ");
     excludeGraphTypeValues = `VALUES ?excludeGraphType { ${excludeGraphTypeValues} }`;
     graphFilter += `FILTER NOT EXISTS {
-      ?targetGraph a ?excludedGraphType.
+      ?g a ?excludedGraphType.
     }`;
   }
 
@@ -246,7 +246,7 @@ async function erectMissingTombstones(
       }
       FILTER NOT EXISTS {
         ${excludeGraphTypeValues}
-        GRAPH ?targetGraph {
+        GRAPH ?g {
           VALUES ?type {
             ${sparqlEscapeUri(type)}
             <http://www.w3.org/ns/activitystreams#Tombstone>
