@@ -186,8 +186,7 @@ async function getMissingValuesLdes(options: {
     FILTER(?g NOT IN (${excludeGraphs}))`;
   }
 
-  const result = await querySudo(
-    `
+  let healingQuery = `
     SELECT DISTINCT ?s ?p ?o
     WHERE {
       VALUES ?p { ${predicateValues} }
@@ -208,7 +207,36 @@ async function getMissingValuesLdes(options: {
       }
       ${healingFilter}
     } LIMIT ${HEALING_LIMIT}
-  `,
+  `;
+
+  if (process.env.VIRTUOSO_DATE_WORKAROUND === "true") {
+    healingQuery = `
+    SELECT DISTINCT ?s ?p ?o
+    WHERE {
+      VALUES ?p { ${predicateValues} }
+
+      GRAPH ?g {
+        ?s a ${sparqlEscapeUri(type)}.
+        ?s ?p ?o.
+
+        ${filter}
+      }
+
+      ${graphFilter}
+
+      FILTER NOT EXISTS {
+        GRAPH ${sparqlEscapeUri(HEALING_TRANSFORMED_GRAPH)} {
+          ?s ?p ?o2.
+          FILTER(STR(?o) = STR(?o2))
+        }
+      }
+      ${healingFilter}
+    } LIMIT ${HEALING_LIMIT}
+  `;
+  }
+
+  const result = await querySudo(
+    healingQuery,
     {},
     { sparqlEndpoint: DIRECT_DB_ENDPOINT }
   );

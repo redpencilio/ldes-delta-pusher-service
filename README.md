@@ -19,6 +19,7 @@ The following environment variables can be provided:
 - `HEALING_TRANSFORMED_GRAPH`: the (temporary) graph where the processed LDES data is stored. This holds the latest version of the LDES instances so they can be compared with what is currently in the database. Defaults to `http://mu.semte.ch/graphs/transformed-ldes-data`
 - `HEALING_BATCH_SIZE`: the number of triples that are written to the dump graph at a time. Defaults to 100
 - `CRON_CHECKPOINT`: the cron config for how often to trigger the creation of a checkpoint. Not set by default so no checkpoints are created.
+- `VIRTUOSO_DATE_WORKAROUND`: we noticed that some virtuoso versions have trouble comparing dates, finding differences where the dates are actually the same (with the same datatype). The workaround is to compare the string value of the objects during auto healing instead of the object values themselves. This is obviously bad so don't use it unless you really have to.
 
 ## Auto Healing
 
