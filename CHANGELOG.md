@@ -1,4 +1,13 @@
 
+
+## 1.2.5 (2025-04-01)
+
+#### :bug: Bug Fix
+* [#28](https://github.com/redpencilio/ldes-delta-pusher-service/pull/28) bump ldes producer ([@nbittich](https://github.com/nbittich))
+
+#### Committers: 1
+- Nordine Bittich ([@nbittich](https://github.com/nbittich))
+
 ## v0.1.1 (2024-03-26)
 
 ## 0.1.0 (2023-02-14)
