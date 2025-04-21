@@ -267,8 +267,8 @@ async function writeInitialStateForStreamAndType(
         GRAPH ?g {
           ?s ?p ?o .
           FILTER (?p != ext:versionedUri)
-          ${instanceFilter}
         }
+        ${instanceFilter}
 
         ${graphFilter}
 
