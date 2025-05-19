@@ -166,7 +166,13 @@ async function endFile(fileCount: number, stream: fs.WriteStream) {
   ${uriForRelation} <https://w3id.org/tree#node> <./${fileCount + 1}> .
   ${uriForRelation} <https://w3id.org/tree#path> <http://www.w3.org/ns/prov#generatedAtTime> .\n`;
 
-  stream.write(triplesToAdd);
+  return new Promise((resolve) => {
+    stream.on("finish", () => {
+      resolve(true);
+    });
+    stream.write(triplesToAdd);
+    stream.end();
+  });
 }
 
 async function connectCheckpointToLastLDESPage(
@@ -188,8 +194,13 @@ async function connectCheckpointToLastLDESPage(
   ${uriForRelation} <https://w3id.org/tree#node> <../../${realStreamFileCount}> .
   ${uriForRelation} <https://w3id.org/tree#path> <http://www.w3.org/ns/prov#generatedAtTime> .\n`;
 
-  currentStream.write(triplesToAdd);
-  currentStream.end();
+  return new Promise((resolve) => {
+    currentStream.on("finish", () => {
+      resolve(true);
+    });
+    currentStream.write(triplesToAdd);
+    currentStream.end();
+  });
 }
 
 async function startFile(
@@ -293,7 +304,12 @@ async function writeInitialStateForStreamAndType(
 
 async function forceNewFile(ldesStream: string, checkpoint?: string) {
   if (currentStream) {
-    currentStream.end();
+    await new Promise((resolve) => {
+      currentStream.on("finish", () => {
+        resolve(true);
+      });
+      currentStream.end();
+    });
   }
 
   let {
@@ -307,8 +323,8 @@ async function forceNewFile(ldesStream: string, checkpoint?: string) {
     });
 
     await endFile(number, endStream);
-    endStream.end();
-    currentFile = `${directory}/${number + 1}.ttl`;
+    number = number + 1;
+    currentFile = `${directory}/${number}.ttl`;
   }
 
   const stream = fs.createWriteStream(currentFile, {
@@ -321,6 +337,7 @@ async function forceNewFile(ldesStream: string, checkpoint?: string) {
 }
 
 export async function writeInitialState() {
+  await new Promise((resolve) => setTimeout(resolve, 20000));
   console.log("writing initial state");
 
   for (const ldesStream in initialization) {
@@ -371,7 +388,12 @@ async function writeCheckpointRef(ldesStream: string, checkpointName: string) {
     <./checkpoints/${checkpointName}/1> <http://purl.org/dc/terms/modified> "${new Date().toISOString()}"^^<http://www.w3.org/2001/XMLSchema#dateTime> .\n`;
 
   stream.write(triplesToAdd);
-  stream.end();
+  await new Promise((resolve) => {
+    stream.on("finish", () => {
+      resolve(true);
+    });
+    stream.end();
+  });
 }
 
 export async function writeCheckpoint() {
