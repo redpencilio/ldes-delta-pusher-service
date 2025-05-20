@@ -27,6 +27,16 @@ The LDES delta pusher can fetch its own stream(s) and compare the final result w
 
 The stream is read directly from the backend service (using the internal docker compose network) and stored into a temporary graph in the database. The default implementation only looks at the dct:modified time of the instances. The assumption here is that if the modified time is the same, then all other data will also be up to date on the stream. However, by adding other predicates to the `healingPredicates` array in the config, you can have the stream also check for values of other predicates that are not on the LDES stream. Have a look at the example config in `config/healing.ts`, it clarifies the meaning of each value
 
+## Manual trigger of the healing process
+
+The `/manual-healing` endpoint allows for manually triggering the healing process by sending a `POST` request.
+To reach the service with `curl`, you will have to expose its ports in the compose config, and curl from the system the stack is running on.
+
+Of course, you can also use the dispatcher for a more robust way, but the need for manually triggering the healing should be rather exceptional.
+
+Note also the process can take quite a long time depending on the size of your database. The endpoint is currently not taskified and will block the request for as long as it's running.
+
+
 ## Checkpoints
 
 Once your LDES has been producing for a while, it can be annoying for clients to have to fetch all changes since the beginning of the stream. They may only be interested in the changes in the last month for instance. Or they may just want to be in sync with the current state of the stream.
