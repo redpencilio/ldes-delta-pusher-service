@@ -7,7 +7,7 @@ import dispatch from "./config/dispatch";
 import { Changeset } from "./types";
 import { writeInitialState } from "./writeInitialState";
 
-import { cronjob as autoHealing } from "./self-healing/cron";
+import { cronjob as autoHealing, manualTrigger } from "./self-healing/cron";
 import { AUTO_HEALING, DATA_FOLDER, LDES_BASE } from "./environment";
 import { ttlFileAsContentType } from "./util/ttlFileAsContentType";
 import { cronjob as checkpointCron } from "./writeInitialState";
@@ -61,6 +61,20 @@ app.get("/checkpoints/:stream", async function (req: Request, res: Response) {
     res.status(500).send();
   }
 });
+/**
+* A manual trigger of the auto-healing process. Runs even if the AUTO_HEALING
+* variable is false, for one-off occasions.
+*/
+app.post("/manual-healing", async function(_req: Request, res: Response) {
+  try {
+    await manualTrigger();
+  } catch(e) {
+    console.error(e)
+    res.status(500).send()
+  }
+  res.status(200)
+  .send(`Healing succesfully completed at ${new Date().toISOString()}`);
+})
 
 new Promise(async (resolve) => {
   if (process.env.WRITE_INITIAL_STATE === "true") {

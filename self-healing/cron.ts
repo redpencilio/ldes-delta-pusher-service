@@ -17,16 +17,8 @@ const ldesProducerConfig = getConfigFromEnv();
 type PagePointer = { path: string; file: number };
 
 let isRunning = false;
-const cronMethod = async () => {
-  console.log(
-    "*******************************************************************"
-  );
-  console.log(
-    `*** Pull LDES triggered by cron job at ${new Date().toISOString()} ***`
-  );
-  console.log(
-    "*******************************************************************"
-  );
+const triggerHealing = async (startMessage: string) => {
+  console.log(startMessage);
 
   if (isRunning) {
     return;
@@ -40,6 +32,14 @@ const cronMethod = async () => {
   }
   isRunning = false;
 };
+const cronMethod = async () =>  triggerHealing(`
+    *******************************************************************
+    *** Pull LDES triggered by cron job at ${new Date().toISOString()} ***
+    *******************************************************************`)
+export const manualTrigger = async () =>  triggerHealing(`
+    *******************************************************************
+    *** Pull LDES triggered by manual trigger at ${new Date().toISOString()} ***
+    *******************************************************************`)
 
 async function healStream(stream: string, config: HealingConfig) {
   const startTime = performance.now();
