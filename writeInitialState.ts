@@ -19,7 +19,7 @@ const MAX_PAGE_SIZE_BYTES = parseInt(
   process.env.MAX_PAGE_SIZE_BYTES || "10000000"
 );
 
-let currentStream: fs.WriteStream;
+let currentStream: fs.WriteStream | null;
 let currentStreamCharCount = 0;
 
 function createTtlSparqlClient(turtle = true) {
@@ -195,11 +195,17 @@ async function connectCheckpointToLastLDESPage(
   ${uriForRelation} <https://w3id.org/tree#path> <http://www.w3.org/ns/prov#generatedAtTime> .\n`;
 
   return new Promise((resolve) => {
+    if (!currentStream) {
+      throw new Error(
+        "Could not find current write stream to connect checkpoint with"
+      );
+    }
     currentStream.on("finish", () => {
       resolve(true);
     });
     currentStream.write(triplesToAdd);
     currentStream.end();
+    currentStream = null;
   });
 }
 
@@ -227,6 +233,9 @@ async function writeToCurrentFile(
   contents: string,
   checkpointName?: string
 ) {
+  if (!currentStream) {
+    throw new Error("Could not find current stream to write triples to");
+  }
   currentStream.write(contents + "\n");
   currentStreamCharCount += contents.length;
   if (currentStreamCharCount > MAX_PAGE_SIZE_BYTES) {
@@ -303,14 +312,16 @@ async function writeInitialStateForStreamAndType(
 }
 
 async function forceNewFile(ldesStream: string, checkpoint?: string) {
-  if (currentStream) {
-    await new Promise((resolve) => {
+  await new Promise((resolve) => {
+    if (!currentStream) {
+      resolve(true);
+    } else {
       currentStream.on("finish", () => {
         resolve(true);
       });
       currentStream.end();
-    });
-  }
+    }
+  });
 
   let {
     file: currentFile,
