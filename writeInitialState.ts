@@ -213,7 +213,7 @@ async function startFile(
   const streamUri = `<${LDES_BASE}${streamName}>`;
   const base = checkpoint ? `./checkpoints/${checkpoint}` : ".";
   const triplesToAdd = `
-  ${streamUri} <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://w3id.org/ldes#EventStream> .
+  ${streamUri} <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <https://w3id.org/ldes#EventStream> .
 
   ${streamUri} <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <https://w3id.org/tree#Collection> .
   ${streamUri} <https://w3id.org/tree#view> <./1> .
