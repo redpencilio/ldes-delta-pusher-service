@@ -13,10 +13,11 @@ import {
   LDES_BASE,
 } from "./environment";
 import { CronJob } from "cron";
+import { LDES } from "@lblod/ldes-producer";
 
 const limit = parseInt(process.env.INITIAL_STATE_LIMIT || "10000");
 const MAX_PAGE_SIZE_BYTES = parseInt(
-  process.env.MAX_PAGE_SIZE_BYTES || "10000000"
+  process.env.MAX_PAGE_SIZE_BYTES || "10000000",
 );
 
 let currentStream: fs.WriteStream;
@@ -59,7 +60,7 @@ const ttlClient = createTtlSparqlClient();
 async function generateVersionedUris(
   type: string,
   filter: string,
-  graphFilter: string
+  graphFilter: string,
 ) {
   // filtering here makes it way easier later on. we should simply consider all instances of the type with a versioned uri
   // because the filter has already been applied to those instances
@@ -95,7 +96,7 @@ async function generateVersionedUris(
 async function cleanupVersionedUris() {
   await executeDirectQuery(
     "DROP SILENT GRAPH <http://mu.semte.ch/graphs/ldes-initializer>",
-    ttlClient
+    ttlClient,
   );
   console.log("cleaned up versioned uris");
 }
@@ -103,7 +104,7 @@ async function cleanupVersionedUris() {
 async function executeDirectQuery(
   query: string,
   ttlClient: typeof SparqlClient,
-  retries = 5
+  retries = 5,
 ) {
   try {
     return await ttlClient.query(query).executeRaw();
@@ -129,7 +130,7 @@ async function countMatchesForType(stream, type) {
         ${filter}
       }
       ${graphFilter}
-    }`
+    }`,
   );
   return parseInt(res.results.bindings[0].count.value);
 }
@@ -177,7 +178,7 @@ async function endFile(fileCount: number, stream: fs.WriteStream) {
 
 async function connectCheckpointToLastLDESPage(
   ldesStream: string,
-  checkpoint: string
+  checkpoint: string,
 ) {
   let { number: fileCount } = getCurrentFile(ldesStream, checkpoint);
   const { number: realStreamFileCount } = getCurrentFile(ldesStream);
@@ -207,13 +208,13 @@ async function startFile(
   streamName: string,
   fileCount: number,
   stream: fs.WriteStream,
-  checkpoint?: string
+  checkpoint?: string,
 ) {
   console.log(`[${streamName}]  starting new file ${fileCount}`);
   const streamUri = `<${LDES_BASE}${streamName}>`;
   const base = checkpoint ? `./checkpoints/${checkpoint}` : ".";
   const triplesToAdd = `
-  ${streamUri} <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <https://w3id.org/ldes#EventStream> .
+  ${streamUri} <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ${sparqlEscapeUri(LDES("EventStream").value)} .
 
   ${streamUri} <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <https://w3id.org/tree#Collection> .
   ${streamUri} <https://w3id.org/tree#view> <./1> .
@@ -225,18 +226,18 @@ async function startFile(
 async function writeToCurrentFile(
   ldesStream: string,
   contents: string,
-  checkpointName?: string
+  checkpointName?: string,
 ) {
   currentStream.write(contents + "\n");
   currentStreamCharCount += contents.length;
   if (currentStreamCharCount > MAX_PAGE_SIZE_BYTES) {
     console.log(
-      `[${ldesStream}]  reached max page size ${currentStreamCharCount} > ${MAX_PAGE_SIZE_BYTES}, starting new file`
+      `[${ldesStream}]  reached max page size ${currentStreamCharCount} > ${MAX_PAGE_SIZE_BYTES}, starting new file`,
     );
     await forceNewFile(ldesStream, checkpointName);
   } else {
     console.log(
-      `[${ldesStream}]  current page size ${currentStreamCharCount} < ${MAX_PAGE_SIZE_BYTES}`
+      `[${ldesStream}]  current page size ${currentStreamCharCount} < ${MAX_PAGE_SIZE_BYTES}`,
     );
   }
 }
@@ -244,7 +245,7 @@ async function writeToCurrentFile(
 async function writeInitialStateForStreamAndType(
   ldesStream: string,
   type: string,
-  checkpointName?: string
+  checkpointName?: string,
 ) {
   console.log(`[${ldesStream}]  writing initial state for ${type}`);
 
@@ -295,7 +296,7 @@ async function writeInitialStateForStreamAndType(
       `[${ldesStream}]  wrote ${written}/${count} instances for type ${type} (${(
         (written / count) *
         100
-      ).toFixed(2)}%)`
+      ).toFixed(2)}%)`,
     );
     offset += limit;
   }
@@ -380,7 +381,7 @@ async function writeCheckpointRef(ldesStream: string, checkpointName: string) {
     flags: "a",
   });
   console.log(
-    `[${ldesStream}]  writing checkpoint reference ${checkpointName}`
+    `[${ldesStream}]  writing checkpoint reference ${checkpointName}`,
   );
   const streamUri = `<${LDES_BASE}${ldesStream}>`;
   const triplesToAdd = `
@@ -421,13 +422,13 @@ export async function writeCheckpoint() {
 let isRunning = false;
 const checkpointCron = async () => {
   console.log(
-    "*******************************************************************"
+    "*******************************************************************",
   );
   console.log(
-    `*** Checkpoint triggered by CRON ${new Date().toISOString()} ***`
+    `*** Checkpoint triggered by CRON ${new Date().toISOString()} ***`,
   );
   console.log(
-    "*******************************************************************"
+    "*******************************************************************",
   );
 
   if (isRunning) {
