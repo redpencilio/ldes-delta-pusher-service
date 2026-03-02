@@ -20,6 +20,7 @@ The following environment variables can be provided:
 - `HEALING_BATCH_SIZE`: the number of triples that are written to the dump graph at a time. Defaults to 100
 - `CRON_CHECKPOINT`: the cron config for how often to trigger the creation of a checkpoint. Not set by default so no checkpoints are created.
 - `VIRTUOSO_DATE_WORKAROUND`: we noticed that some virtuoso versions have trouble comparing dates, finding differences where the dates are actually the same (with the same datatype). The workaround is to compare the string value of the objects during auto healing instead of the object values themselves. This is obviously bad so don't use it unless you really have to.
+- `USE_CORRECT_LDES_NAMESPACE`: if set to true, will use the correct `https://w3id.org/ldes#` namespace instead of `http://w3id.org/ldes#`. This will become the default in a future major release
 
 ## Auto Healing
 
