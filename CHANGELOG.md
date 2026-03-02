@@ -1,3 +1,12 @@
+
+## 1.2.10 (2026-03-02)
+
+#### :bug: Bug Fix
+* [#34](https://github.com/redpencilio/ldes-delta-pusher-service/pull/34) Add option to fix used LDES namespace ([@elpoelma](https://github.com/elpoelma))
+
+#### Committers: 1
+- Elena Poelman ([@elpoelma](https://github.com/elpoelma))
+
 ## 1.2.10 (2026-03-02)
 
 #### :bug: Bug Fix
