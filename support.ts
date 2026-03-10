@@ -16,9 +16,15 @@ const datatypeNames = {
   "http://www.w3.org/2001/XMLSchema#boolean": "bool",
 };
 const sparqlEscapeObject = (bindingObject: Term): string => {
-  if (bindingObject["xml:lang"]) {
+
+  // Might not be ideal: two ways of anotating language
+  //   xml:lang  conforms to https://www.w3.org/TR/sparql11-results-json/
+  //   lang      conforms to https://www.w3.org/TR/rdf-json/
+  // We look for both to capture all intentions.
+  const lang = bindingObject["xml:lang"] || bindingObject.lang;
+  if (lang) {
     const safeValue = sparqlEscape(bindingObject.value, "string");
-    return `"${safeValue}"@${bindingObject["xml:lang"]}`;
+    return `"${safeValue}"@${lang}`;
   }
 
   const escapeType = datatypeNames[bindingObject?.datatype || ""] || "string";
