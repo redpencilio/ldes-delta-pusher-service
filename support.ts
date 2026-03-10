@@ -21,6 +21,7 @@ const sparqlEscapeObject = (bindingObject: Term): string => {
   //   xml:lang  conforms to https://www.w3.org/TR/sparql11-results-json/
   //   lang      conforms to https://www.w3.org/TR/rdf-json/
   // We look for both to capture all intentions.
+  // One is coming sparql results set, the other from delta-notifier...
   const lang = bindingObject["xml:lang"] || bindingObject.lang;
   if (lang) {
     const safeValue = sparqlEscape(bindingObject.value, "string");
