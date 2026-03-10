@@ -1,6 +1,7 @@
 export type Term = {
   type: string;
   datatype?: string;
+  "xml:lang"?: string;
   value: string | number | boolean;
 };
 

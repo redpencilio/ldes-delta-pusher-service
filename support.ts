@@ -16,6 +16,11 @@ const datatypeNames = {
   "http://www.w3.org/2001/XMLSchema#boolean": "bool",
 };
 const sparqlEscapeObject = (bindingObject: Term): string => {
+  if (bindingObject["xml:lang"]) {
+    const safeValue = sparqlEscape(bindingObject.value, "string");
+    return `"${safeValue}"@${bindingObject["xml:lang"]}`;
+  }
+
   const escapeType = datatypeNames[bindingObject?.datatype || ""] || "string";
   if (bindingObject.datatype === "http://www.w3.org/2001/XMLSchema#dateTime") {
     // sparqlEscape formats it slightly differently and then the comparison breaks in healing
