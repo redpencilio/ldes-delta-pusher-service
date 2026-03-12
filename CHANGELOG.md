@@ -1,4 +1,13 @@
 
+
+## 1.2.11 (2026-03-12)
+
+#### :bug: Bug Fix
+* [#35](https://github.com/redpencilio/ldes-delta-pusher-service/pull/35) Add support for language-tagged literals in sparqlEscapeObject ([@cecemel](https://github.com/cecemel))
+
+#### Committers: 1
+- [@cecemel](https://github.com/cecemel)
+
 ## 1.2.10 (2026-03-02)
 
 #### :bug: Bug Fix
