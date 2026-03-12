@@ -25,7 +25,7 @@ const sparqlEscapeObject = (bindingObject: Term): string => {
   const lang = bindingObject["xml:lang"] || bindingObject.lang;
   if (lang) {
     const safeValue = sparqlEscape(bindingObject.value, "string");
-    return `"${safeValue}"@${lang}`;
+    return `${safeValue}@${lang}`;
   }
 
   const escapeType = datatypeNames[bindingObject?.datatype || ""] || "string";
