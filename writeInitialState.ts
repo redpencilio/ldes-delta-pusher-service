@@ -76,8 +76,8 @@ async function generateVersionedUris(
         SELECT DISTINCT ?s WHERE {
           GRAPH ?g {
             ?s a ${sparqlEscapeUri(type)}.
-            ${filter}
           }
+          ${filter}
           ${graphFilter}
         }
       }
@@ -127,8 +127,8 @@ async function countMatchesForType(stream, type) {
     SELECT (COUNT(DISTINCT ?s) as ?count) WHERE {
       GRAPH ?g {
         ?s a ${sparqlEscapeUri(type)}.
-        ${filter}
       }
+      ${filter}
       ${graphFilter}
     }`,
   );

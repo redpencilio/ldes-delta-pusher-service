@@ -194,10 +194,9 @@ async function getMissingValuesLdes(options: {
       GRAPH ?g {
         ?s a ${sparqlEscapeUri(type)}.
         ?s ?p ?o.
-
-        ${filter}
       }
 
+      ${filter}
       ${graphFilter}
 
       FILTER NOT EXISTS {
@@ -218,9 +217,8 @@ async function getMissingValuesLdes(options: {
       GRAPH ?g {
         ?s a ${sparqlEscapeUri(type)}.
         ?s ?p ?o.
-
-        ${filter}
       }
+      ${filter}
 
       ${graphFilter}
 
