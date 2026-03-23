@@ -1,23 +1,23 @@
-import sparqlClient from "sparql-client-2";
+import sparqlClient from 'sparql-client-2';
 const { SparqlClient } = sparqlClient;
-import { sparqlEscapeUri, sparqlEscapeDateTime } from "mu";
-import httpContext from "express-http-context";
-import fs from "fs";
-import { initialization } from "./config/initialization";
-import { v4 as uuid } from "uuid";
-import { querySudo } from "@lblod/mu-auth-sudo";
+import { sparqlEscapeUri, sparqlEscapeDateTime } from 'mu';
+import httpContext from 'express-http-context';
+import fs from 'fs';
+import { initialization } from './config/initialization';
+import { v4 as uuid } from 'uuid';
+import { querySudo } from '@lblod/mu-auth-sudo';
 import {
   CRON_CHECKPOINT,
   DATA_FOLDER,
   DIRECT_DB_ENDPOINT,
   LDES_BASE,
-} from "./environment";
-import { CronJob } from "cron";
-import { LDES } from "@lblod/ldes-producer";
+} from './environment';
+import { CronJob } from 'cron';
+import { LDES } from '@lblod/ldes-producer';
 
-const limit = parseInt(process.env.INITIAL_STATE_LIMIT || "10000");
+const limit = parseInt(process.env.INITIAL_STATE_LIMIT || '10000');
 const MAX_PAGE_SIZE_BYTES = parseInt(
-  process.env.MAX_PAGE_SIZE_BYTES || "10000000",
+  process.env.MAX_PAGE_SIZE_BYTES || '10000000',
 );
 
 let currentStream: fs.WriteStream;
@@ -29,27 +29,27 @@ function createTtlSparqlClient(turtle = true) {
   };
   if (turtle) {
     // NICE! we are allowed to concatenate turtle! prefixes are allowed to be redefined
-    options.defaultParameters = { format: "turtle" };
+    options.defaultParameters = { format: 'turtle' };
   }
 
-  if (httpContext.get("request")) {
-    options.requestDefaults.headers["mu-session-id"] = httpContext
-      .get("request")
-      .get("mu-session-id");
-    options.requestDefaults.headers["mu-call-id"] = httpContext
-      .get("request")
-      .get("mu-call-id");
-    options.requestDefaults.headers["mu-auth-allowed-groups"] = httpContext
-      .get("request")
-      .get("mu-auth-allowed-groups"); // groups of incoming request
+  if (httpContext.get('request')) {
+    options.requestDefaults.headers['mu-session-id'] = httpContext
+      .get('request')
+      .get('mu-session-id');
+    options.requestDefaults.headers['mu-call-id'] = httpContext
+      .get('request')
+      .get('mu-call-id');
+    options.requestDefaults.headers['mu-auth-allowed-groups'] = httpContext
+      .get('request')
+      .get('mu-auth-allowed-groups'); // groups of incoming request
   }
 
-  if (httpContext.get("response")) {
+  if (httpContext.get('response')) {
     const allowedGroups = httpContext
-      .get("response")
-      .get("mu-auth-allowed-groups"); // groups returned by a previous SPARQL query
+      .get('response')
+      .get('mu-auth-allowed-groups'); // groups returned by a previous SPARQL query
     if (allowedGroups)
-      options.requestDefaults.headers["mu-auth-allowed-groups"] = allowedGroups;
+      options.requestDefaults.headers['mu-auth-allowed-groups'] = allowedGroups;
   }
 
   return new SparqlClient(DIRECT_DB_ENDPOINT, options);
@@ -76,8 +76,8 @@ async function generateVersionedUris(
         SELECT DISTINCT ?s WHERE {
           GRAPH ?g {
             ?s a ${sparqlEscapeUri(type)}.
-            ${filter}
           }
+          ${filter}
           ${graphFilter}
         }
       }
@@ -90,15 +90,15 @@ async function generateVersionedUris(
   `;
   console.log(query);
   await executeDirectQuery(query, ttlClient);
-  console.log("generated versioned uris");
+  console.log('generated versioned uris');
 }
 
 async function cleanupVersionedUris() {
   await executeDirectQuery(
-    "DROP SILENT GRAPH <http://mu.semte.ch/graphs/ldes-initializer>",
+    'DROP SILENT GRAPH <http://mu.semte.ch/graphs/ldes-initializer>',
     ttlClient,
   );
-  console.log("cleaned up versioned uris");
+  console.log('cleaned up versioned uris');
 }
 
 async function executeDirectQuery(
@@ -120,15 +120,15 @@ async function executeDirectQuery(
 }
 
 async function countMatchesForType(stream, type) {
-  const filter = initialization[stream]?.[type]?.filter || "";
-  const graphFilter = initialization[stream]?.[type]?.graphFilter || "";
+  const filter = initialization[stream]?.[type]?.filter || '';
+  const graphFilter = initialization[stream]?.[type]?.graphFilter || '';
   const res = await querySudo(
     `
     SELECT (COUNT(DISTINCT ?s) as ?count) WHERE {
       GRAPH ?g {
         ?s a ${sparqlEscapeUri(type)}.
-        ${filter}
       }
+      ${filter}
       ${graphFilter}
     }`,
   );
@@ -142,10 +142,10 @@ function getCurrentFile(ldesStream: string, checkpoint?: string) {
     directory = `${directory}/checkpoints/${checkpoint}`;
   }
   fs.readdirSync(directory).forEach((file) => {
-    if (file.startsWith("checkpoints")) {
+    if (file.startsWith('checkpoints')) {
       return;
     }
-    const number = parseInt(file.split(".")[0]);
+    const number = parseInt(file.split('.')[0]);
     if (number > highestNumber) {
       highestNumber = number;
     }
@@ -168,7 +168,7 @@ async function endFile(fileCount: number, stream: fs.WriteStream) {
   ${uriForRelation} <https://w3id.org/tree#path> <http://www.w3.org/ns/prov#generatedAtTime> .\n`;
 
   return new Promise((resolve) => {
-    stream.on("finish", () => {
+    stream.on('finish', () => {
       resolve(true);
     });
     stream.write(triplesToAdd);
@@ -196,7 +196,7 @@ async function connectCheckpointToLastLDESPage(
   ${uriForRelation} <https://w3id.org/tree#path> <http://www.w3.org/ns/prov#generatedAtTime> .\n`;
 
   return new Promise((resolve) => {
-    currentStream.on("finish", () => {
+    currentStream.on('finish', () => {
       resolve(true);
     });
     currentStream.write(triplesToAdd);
@@ -212,9 +212,9 @@ async function startFile(
 ) {
   console.log(`[${streamName}]  starting new file ${fileCount}`);
   const streamUri = `<${LDES_BASE}${streamName}>`;
-  const base = checkpoint ? `./checkpoints/${checkpoint}` : ".";
+  const base = checkpoint ? `./checkpoints/${checkpoint}` : '.';
   const triplesToAdd = `
-  ${streamUri} <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ${sparqlEscapeUri(LDES("EventStream").value)} .
+  ${streamUri} <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ${sparqlEscapeUri(LDES('EventStream').value)} .
 
   ${streamUri} <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <https://w3id.org/tree#Collection> .
   ${streamUri} <https://w3id.org/tree#view> <./1> .
@@ -228,7 +228,7 @@ async function writeToCurrentFile(
   contents: string,
   checkpointName?: string,
 ) {
-  currentStream.write(contents + "\n");
+  currentStream.write(contents + '\n');
   currentStreamCharCount += contents.length;
   if (currentStreamCharCount > MAX_PAGE_SIZE_BYTES) {
     console.log(
@@ -252,11 +252,11 @@ async function writeInitialStateForStreamAndType(
   let offset = 0;
   const count = await countMatchesForType(ldesStream, type);
 
-  const graphFilter = initialization[ldesStream]?.[type]?.graphFilter || "";
+  const graphFilter = initialization[ldesStream]?.[type]?.graphFilter || '';
   const extraConstruct =
-    initialization[ldesStream]?.[type]?.extraConstruct || "";
-  const extraWhere = initialization[ldesStream]?.[type]?.extraWhere || "";
-  const instanceFilter = initialization[ldesStream]?.[type]?.filter || "";
+    initialization[ldesStream]?.[type]?.extraConstruct || '';
+  const extraWhere = initialization[ldesStream]?.[type]?.extraWhere || '';
+  const instanceFilter = initialization[ldesStream]?.[type]?.filter || '';
 
   const now = sparqlEscapeDateTime(new Date().toISOString());
   while (offset < count) {
@@ -306,7 +306,7 @@ async function writeInitialStateForStreamAndType(
 async function forceNewFile(ldesStream: string, checkpoint?: string) {
   if (currentStream) {
     await new Promise((resolve) => {
-      currentStream.on("finish", () => {
+      currentStream.on('finish', () => {
         resolve(true);
       });
       currentStream.end();
@@ -320,7 +320,7 @@ async function forceNewFile(ldesStream: string, checkpoint?: string) {
   } = getCurrentFile(ldesStream, checkpoint);
   if (fs.existsSync(currentFile)) {
     const endStream = fs.createWriteStream(currentFile, {
-      flags: "a",
+      flags: 'a',
     });
 
     await endFile(number, endStream);
@@ -329,7 +329,7 @@ async function forceNewFile(ldesStream: string, checkpoint?: string) {
   }
 
   const stream = fs.createWriteStream(currentFile, {
-    flags: "a",
+    flags: 'a',
   });
   await startFile(ldesStream, number, stream, checkpoint);
   currentStream = stream;
@@ -339,7 +339,7 @@ async function forceNewFile(ldesStream: string, checkpoint?: string) {
 
 export async function writeInitialState() {
   await new Promise((resolve) => setTimeout(resolve, 20000));
-  console.log("writing initial state");
+  console.log('writing initial state');
 
   for (const ldesStream in initialization) {
     if (!fs.existsSync(`${DATA_FOLDER}/${ldesStream}`)) {
@@ -350,8 +350,8 @@ export async function writeInitialState() {
     await forceNewFile(ldesStream);
     await forceNewFile(ldesStream);
     for (const type in initialization[ldesStream]) {
-      const graphFilter = initialization[ldesStream]?.[type]?.graphFilter || "";
-      const filter = initialization[ldesStream]?.[type]?.filter || "";
+      const graphFilter = initialization[ldesStream]?.[type]?.graphFilter || '';
+      const filter = initialization[ldesStream]?.[type]?.filter || '';
       await generateVersionedUris(type, filter, graphFilter);
       await writeInitialStateForStreamAndType(ldesStream, type);
     }
@@ -359,15 +359,15 @@ export async function writeInitialState() {
     await forceNewFile(ldesStream);
   }
 
-  console.log("done writing initial state");
+  console.log('done writing initial state');
 }
 
 function ensureCheckpointDir(ldesStream: string) {
   const checkpointName = new Date()
     .toISOString()
-    .split(":")
-    .join("-")
-    .split(".")[0];
+    .split(':')
+    .join('-')
+    .split('.')[0];
   const checkpointDir = `${DATA_FOLDER}/${ldesStream}/checkpoints/${checkpointName}`;
   if (!fs.existsSync(checkpointDir)) {
     fs.mkdirSync(checkpointDir, { recursive: true });
@@ -378,7 +378,7 @@ function ensureCheckpointDir(ldesStream: string) {
 async function writeCheckpointRef(ldesStream: string, checkpointName: string) {
   let directory = `${DATA_FOLDER}/${ldesStream}`;
   const stream = fs.createWriteStream(`${directory}/checkpoints.ttl`, {
-    flags: "a",
+    flags: 'a',
   });
   console.log(
     `[${ldesStream}]  writing checkpoint reference ${checkpointName}`,
@@ -390,7 +390,7 @@ async function writeCheckpointRef(ldesStream: string, checkpointName: string) {
 
   stream.write(triplesToAdd);
   await new Promise((resolve) => {
-    stream.on("finish", () => {
+    stream.on('finish', () => {
       resolve(true);
     });
     stream.end();
@@ -398,7 +398,7 @@ async function writeCheckpointRef(ldesStream: string, checkpointName: string) {
 }
 
 export async function writeCheckpoint() {
-  console.log("starting checkpoint");
+  console.log('starting checkpoint');
 
   for (const ldesStream in initialization) {
     const checkpointName = ensureCheckpointDir(ldesStream);
@@ -407,8 +407,8 @@ export async function writeCheckpoint() {
     // no need to force the double new file here, we don't expect checkpoint to be fetched often
     await forceNewFile(ldesStream, checkpointName);
     for (const type in initialization[ldesStream]) {
-      const graphFilter = initialization[ldesStream]?.[type]?.graphFilter || "";
-      const filter = initialization[ldesStream]?.[type]?.filter || "";
+      const graphFilter = initialization[ldesStream]?.[type]?.graphFilter || '';
+      const filter = initialization[ldesStream]?.[type]?.filter || '';
       await generateVersionedUris(type, filter, graphFilter);
       await writeInitialStateForStreamAndType(ldesStream, type, checkpointName);
     }
@@ -416,19 +416,19 @@ export async function writeCheckpoint() {
     await writeCheckpointRef(ldesStream, checkpointName);
   }
 
-  console.log("done writing checkpoint");
+  console.log('done writing checkpoint');
 }
 
 let isRunning = false;
 const checkpointCron = async () => {
   console.log(
-    "*******************************************************************",
+    '*******************************************************************',
   );
   console.log(
     `*** Checkpoint triggered by CRON ${new Date().toISOString()} ***`,
   );
   console.log(
-    "*******************************************************************",
+    '*******************************************************************',
   );
 
   if (isRunning) {

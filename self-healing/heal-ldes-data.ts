@@ -1,17 +1,17 @@
-import { querySudo, updateSudo } from "@lblod/mu-auth-sudo";
-import { sparqlEscapeUri, sparqlEscapeDateTime } from "mu";
-import dispatch from "../config/dispatch";
+import { querySudo, updateSudo } from '@lblod/mu-auth-sudo';
+import { sparqlEscapeUri, sparqlEscapeDateTime } from 'mu';
+import dispatch from '../config/dispatch';
 import {
   HEALING_DUMP_GRAPH,
   HEALING_TRANSFORMED_GRAPH,
   DIRECT_DB_ENDPOINT,
   HEALING_LIMIT,
-} from "../environment";
-import { HealingConfig } from "../config/healing";
+} from '../environment';
+import { HealingConfig } from '../config/healing';
 
 export async function healEntities(
   stream: string,
-  config: HealingConfig
+  config: HealingConfig,
 ): Promise<void> {
   const rdfTypes = Object.keys(config[stream].entities);
   for (const type of rdfTypes) {
@@ -24,31 +24,31 @@ export async function healEntities(
 async function triggerRecreate(
   differences,
   stream: string,
-  config: HealingConfig
+  config: HealingConfig,
 ) {
   const uniqueSubjects = [
     ...new Set<string>(differences.map((difference) => difference.s.value)),
   ];
   if (uniqueSubjects.length === 0) {
-    console.log("No differences found.");
+    console.log('No differences found.');
     return;
   }
   const subjectTypes = await getSubjectTypes(uniqueSubjects, stream, config);
   const inserts = subjectTypes.map((s) => {
     // fake everything but the subject
     return {
-      subject: { value: s.subject, type: "uri" },
+      subject: { value: s.subject, type: 'uri' },
       predicate: {
-        value: "http://www.w3.org/1999/02/22-rdf-syntax-ns#type",
-        type: "uri",
+        value: 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type',
+        type: 'uri',
       },
-      object: { value: s.type, type: "uri" },
-      graph: { value: "http://mu.semte.ch/graphs/application", type: "uri" },
+      object: { value: s.type, type: 'uri' },
+      graph: { value: 'http://mu.semte.ch/graphs/application', type: 'uri' },
     };
   });
 
   console.log(
-    `Inserting ${inserts.length} triples: ${JSON.stringify(inserts)}`
+    `Inserting ${inserts.length} triples: ${JSON.stringify(inserts)}`,
   );
 
   await dispatch([
@@ -60,22 +60,22 @@ async function triggerRecreate(
 }
 
 async function getSubjectTypes(subjects: string[], stream, config) {
-  let graphFilter = config[stream].graphFilter || "";
+  let graphFilter = config[stream].graphFilter || '';
   const graphTypesToExclude = config[stream].graphTypesToExclude;
   const excludedGraphs = config[stream].graphsToExclude;
-  let excludeGraphsFilter = "";
+  let excludeGraphsFilter = '';
   if (excludedGraphs?.length > 0) {
     excludeGraphsFilter = excludedGraphs
       .map((graph: string) => sparqlEscapeUri(graph))
-      .join(", ");
+      .join(', ');
     excludeGraphsFilter = `FILTER(?g NOT IN (${excludeGraphsFilter}))`;
   }
-  let excludeGraphTypesFilter = "";
-  let excludeGraphTypeValues = "";
+  let excludeGraphTypesFilter = '';
+  let excludeGraphTypeValues = '';
   if (graphTypesToExclude?.length > 0) {
     excludeGraphTypeValues = graphTypesToExclude
       .map((type: string) => sparqlEscapeUri(type))
-      .join("\n ");
+      .join('\n ');
     excludeGraphTypeValues = `VALUES ?excludeGraphType { ${excludeGraphTypeValues} }`;
     excludeGraphTypesFilter = `FILTER NOT EXISTS {
       ?g a ?excludedGraphType.
@@ -91,7 +91,7 @@ async function getSubjectTypes(subjects: string[], stream, config) {
     PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
     SELECT DISTINCT ?s ?type
     WHERE {
-      VALUES ?s { ${subjects.map(sparqlEscapeUri).join(" ")} }
+      VALUES ?s { ${subjects.map(sparqlEscapeUri).join(' ')} }
       ${excludeGraphTypeValues}
       GRAPH ?g {
         ?s a ?type.
@@ -99,7 +99,7 @@ async function getSubjectTypes(subjects: string[], stream, config) {
 
       ${graphFilter}
     }
-  `
+  `,
   );
 
   return result.results.bindings.map((binding) => {
@@ -113,29 +113,29 @@ async function getSubjectTypes(subjects: string[], stream, config) {
 async function getDifferences(
   type: string,
   stream: string,
-  config: HealingConfig
+  config: HealingConfig,
 ) {
   const predicates =
     config[stream].entities[type].healingPredicates ||
     config[stream].entities[type];
   const predicateValues = predicates
     .map((p: string) => sparqlEscapeUri(p))
-    .join("\n");
-  const filter = config[stream].entities[type].instanceFilter || "";
+    .join('\n');
+  const filter = config[stream].entities[type].instanceFilter || '';
 
   const excludedGraphs = config[stream].graphsToExclude || [];
   excludedGraphs.push(HEALING_DUMP_GRAPH);
   excludedGraphs.push(HEALING_TRANSFORMED_GRAPH);
-  const graphFilter = config[stream].graphFilter || "";
+  const graphFilter = config[stream].graphFilter || '';
   const excludeGraphs = excludedGraphs
     .map((graph: string) => sparqlEscapeUri(graph))
-    .join(", ");
+    .join(', ');
 
   const graphTypesToExclude = (config[stream].graphTypesToExclude || [])
     .map((graph: string) => sparqlEscapeUri(graph))
-    .join("\n");
+    .join('\n');
 
-  const healingFilter = config[stream].entities[type].healingFilter || "";
+  const healingFilter = config[stream].entities[type].healingFilter || '';
 
   const missingLdesValues = await getMissingValuesLdes({
     type,
@@ -149,8 +149,8 @@ async function getDifferences(
   // only looking for missing values on the ldes, excess values bring hard challenges like how did they even get here? should we purge them or is a tombstone enough? were they just not filtered out correctly?
   console.log(
     `Found ${missingLdesValues.length} missing values: ${JSON.stringify(
-      missingLdesValues
-    )}`
+      missingLdesValues,
+    )}`,
   );
   return missingLdesValues;
 }
@@ -172,7 +172,7 @@ async function getMissingValuesLdes(options: {
     excludeGraphs,
     healingFilter,
   } = options;
-  let graphFilter = options.graphFilter || "";
+  let graphFilter = options.graphFilter || '';
   // legacy options, graph filter is much more powerful
   if (graphTypesToExclude) {
     graphFilter += `
@@ -194,9 +194,8 @@ async function getMissingValuesLdes(options: {
       GRAPH ?g {
         ?s a ${sparqlEscapeUri(type)}.
         ?s ?p ?o.
-
-        ${filter}
       }
+      ${filter}
 
       ${graphFilter}
 
@@ -209,7 +208,7 @@ async function getMissingValuesLdes(options: {
     } LIMIT ${HEALING_LIMIT}
   `;
 
-  if (process.env.VIRTUOSO_DATE_WORKAROUND === "true") {
+  if (process.env.VIRTUOSO_DATE_WORKAROUND === 'true') {
     healingQuery = `
     SELECT DISTINCT ?s ?p ?o
     WHERE {
@@ -218,9 +217,8 @@ async function getMissingValuesLdes(options: {
       GRAPH ?g {
         ?s a ${sparqlEscapeUri(type)}.
         ?s ?p ?o.
-
-        ${filter}
       }
+      ${filter}
 
       ${graphFilter}
 
@@ -238,7 +236,7 @@ async function getMissingValuesLdes(options: {
   const result = await querySudo(
     healingQuery,
     {},
-    { sparqlEndpoint: DIRECT_DB_ENDPOINT }
+    { sparqlEndpoint: DIRECT_DB_ENDPOINT },
   );
   return result.results.bindings.map((binding) => binding);
 }
@@ -246,22 +244,22 @@ async function getMissingValuesLdes(options: {
 async function erectMissingTombstones(
   type: string,
   stream: string,
-  config: HealingConfig
+  config: HealingConfig,
 ) {
   const graphTypesToExclude = config[stream].graphTypesToExclude;
-  let graphFilter = config[stream].graphFilter || "";
+  let graphFilter = config[stream].graphFilter || '';
   const excludedGraphs = config[stream].graphsToExclude;
   if (excludedGraphs?.length > 0) {
     const toExclude = excludedGraphs
       .map((graph: string) => sparqlEscapeUri(graph))
-      .join(", ");
+      .join(', ');
     graphFilter += `FILTER(?g NOT IN (${toExclude}))`;
   }
-  let excludeGraphTypeValues = "";
+  let excludeGraphTypeValues = '';
   if (graphTypesToExclude?.length > 0) {
     excludeGraphTypeValues = graphTypesToExclude
       .map((type: string) => sparqlEscapeUri(type))
-      .join("\n ");
+      .join('\n ');
     excludeGraphTypeValues = `VALUES ?excludeGraphType { ${excludeGraphTypeValues} }`;
     graphFilter += `FILTER NOT EXISTS {
       ?g a ?excludedGraphType.
@@ -291,12 +289,12 @@ async function erectMissingTombstones(
       ${where}
     }
   `);
-  if (parseInt(count.results.bindings[0]?.count?.value || "0") < 1) {
+  if (parseInt(count.results.bindings[0]?.count?.value || '0') < 1) {
     console.log(`No missing tombstones to erect for ${type}`);
     return;
   }
   console.log(
-    `Found ${count.results.bindings[0].count.value} missing tombstones for ${type}. Erecting...`
+    `Found ${count.results.bindings[0].count.value} missing tombstones for ${type}. Erecting...`,
   );
 
   // we're putting the tombstones into the public graph. we don't know the graph they should have been put in
