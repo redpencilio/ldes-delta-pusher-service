@@ -304,7 +304,7 @@ async function writeInitialStateForStreamAndType(
 }
 
 async function forceNewFile(ldesStream: string, checkpoint?: string) {
-  if (currentStream) {
+  if (currentStream && !currentStream.writableEnded) {
     await new Promise((resolve) => {
       currentStream.on("finish", () => {
         resolve(true);
