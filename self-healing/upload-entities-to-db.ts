@@ -3,26 +3,21 @@ import { sparqlEscapeUri, sparqlEscapeString, sparqlEscape } from "mu";
 import ForkingStore from "forking-store";
 import { NamedNode } from "rdflib";
 
-import {
-  HEALING_BATCH_SIZE,
-  HEALING_DUMP_GRAPH,
-  HEALING_TRANSFORMED_GRAPH,
-} from "../environment";
-import { DIRECT_DB_ENDPOINT } from "../environment";
+import ENV from "../environment";
 
 export async function clearHealingTempGraphs(): Promise<void> {
   await updateSudo(
-    `DROP SILENT GRAPH <${HEALING_DUMP_GRAPH}>`,
+    `DROP SILENT GRAPH <${ENV.HEALING_DUMP_GRAPH}>`,
     {},
     {
-      sparqlEndpoint: DIRECT_DB_ENDPOINT,
+      sparqlEndpoint: ENV.DIRECT_DB_ENDPOINT,
     }
   );
   await updateSudo(
-    `DROP SILENT GRAPH <${HEALING_TRANSFORMED_GRAPH}>`,
+    `DROP SILENT GRAPH <${ENV.HEALING_TRANSFORMED_GRAPH}>`,
     {},
     {
-      sparqlEndpoint: DIRECT_DB_ENDPOINT,
+      sparqlEndpoint: ENV.DIRECT_DB_ENDPOINT,
     }
   );
 }
@@ -36,8 +31,8 @@ export async function insertLdesPageToDumpGraph(
   const statements = [...tripleStore.graph.statements];
   const tripleCount = statements.length;
   let batch: any[] = [];
-  for (let index = 0; index < tripleCount; index += HEALING_BATCH_SIZE) {
-    batch = statements.splice(0, HEALING_BATCH_SIZE);
+  for (let index = 0; index < tripleCount; index += ENV.HEALING_BATCH_SIZE) {
+    batch = statements.splice(0, ENV.HEALING_BATCH_SIZE);
     if (batch.length === 0) {
       continue;
     }
@@ -79,12 +74,12 @@ export async function deleteDuplicatesForValues(values?: string[]) {
     PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
 
     INSERT {
-      GRAPH ${sparqlEscapeUri(HEALING_DUMP_GRAPH)} {
+      GRAPH ${sparqlEscapeUri(ENV.HEALING_DUMP_GRAPH)} {
         ?toDelete ext:willDelete true.
       }
     }
     WHERE {
-      GRAPH ${sparqlEscapeUri(HEALING_DUMP_GRAPH)} {
+      GRAPH ${sparqlEscapeUri(ENV.HEALING_DUMP_GRAPH)} {
         VALUES ?entity {
           ${[...valuesToDelete]
             .map((value) => sparqlEscapeUri(value))
@@ -103,7 +98,7 @@ export async function deleteDuplicatesForValues(values?: string[]) {
     }
   `,
     {},
-    { sparqlEndpoint: DIRECT_DB_ENDPOINT }
+    { sparqlEndpoint: ENV.DIRECT_DB_ENDPOINT }
   );
 
   await updateSudo(
@@ -113,19 +108,19 @@ export async function deleteDuplicatesForValues(values?: string[]) {
     PREFIX prov: <http://www.w3.org/ns/prov#>
     PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
     DELETE {
-      GRAPH ${sparqlEscapeUri(HEALING_DUMP_GRAPH)} {
+      GRAPH ${sparqlEscapeUri(ENV.HEALING_DUMP_GRAPH)} {
         ?ldesStream tree:member ?toDelete.
         ?toDelete ?p ?o.
       }
     }
     WHERE {
-      GRAPH ${sparqlEscapeUri(HEALING_DUMP_GRAPH)} {
+      GRAPH ${sparqlEscapeUri(ENV.HEALING_DUMP_GRAPH)} {
         ?toDelete ext:willDelete true.
         ?toDelete ?p ?o.
       }
     }`,
     {},
-    { sparqlEndpoint: DIRECT_DB_ENDPOINT }
+    { sparqlEndpoint: ENV.DIRECT_DB_ENDPOINT }
   );
 
   valuesToDelete = new Set();
@@ -182,12 +177,12 @@ async function addTriplesToLDesDumpGraph(triples: string) {
   await updateSudo(
     `
       INSERT DATA {
-        GRAPH ${sparqlEscapeUri(HEALING_DUMP_GRAPH)} {
+        GRAPH ${sparqlEscapeUri(ENV.HEALING_DUMP_GRAPH)} {
           ${triples}
         }
       }
     `,
     {},
-    { sparqlEndpoint: DIRECT_DB_ENDPOINT, mayRetry: true }
+    { sparqlEndpoint: ENV.DIRECT_DB_ENDPOINT, mayRetry: true }
   );
 }

@@ -6,12 +6,7 @@ import fs from "fs";
 import { initialization } from "./config/initialization";
 import { v4 as uuid } from "uuid";
 import { querySudo } from "@lblod/mu-auth-sudo";
-import {
-  CRON_CHECKPOINT,
-  DATA_FOLDER,
-  DIRECT_DB_ENDPOINT,
-  LDES_BASE,
-} from "./environment";
+import ENV from "./environment";
 import { CronJob } from "cron";
 import { LDES } from "@lblod/ldes-producer";
 
@@ -52,7 +47,7 @@ function createTtlSparqlClient(turtle = true) {
       options.requestDefaults.headers["mu-auth-allowed-groups"] = allowedGroups;
   }
 
-  return new SparqlClient(DIRECT_DB_ENDPOINT, options);
+  return new SparqlClient(ENV.DIRECT_DB_ENDPOINT, options);
 }
 
 const ttlClient = createTtlSparqlClient();
@@ -137,7 +132,7 @@ async function countMatchesForType(stream, type) {
 
 function getCurrentFile(ldesStream: string, checkpoint?: string) {
   let highestNumber = 1;
-  let directory = `${DATA_FOLDER}/${ldesStream}`;
+  let directory = `${ENV.DATA_FOLDER}/${ldesStream}`;
   if (checkpoint) {
     directory = `${directory}/checkpoints/${checkpoint}`;
   }
@@ -211,7 +206,7 @@ async function startFile(
   checkpoint?: string,
 ) {
   console.log(`[${streamName}]  starting new file ${fileCount}`);
-  const streamUri = `<${LDES_BASE}${streamName}>`;
+  const streamUri = `<${ENV.LDES_BASE}${streamName}>`;
   const base = checkpoint ? `./checkpoints/${checkpoint}` : ".";
   const triplesToAdd = `
   ${streamUri} <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> ${sparqlEscapeUri(LDES("EventStream").value)} .
@@ -342,8 +337,8 @@ export async function writeInitialState() {
   console.log("writing initial state");
 
   for (const ldesStream in initialization) {
-    if (!fs.existsSync(`${DATA_FOLDER}/${ldesStream}`)) {
-      fs.mkdirSync(`${DATA_FOLDER}/${ldesStream}`);
+    if (!fs.existsSync(`${ENV.DATA_FOLDER}/${ldesStream}`)) {
+      fs.mkdirSync(`${ENV.DATA_FOLDER}/${ldesStream}`);
     }
     await cleanupVersionedUris();
     // force new file twice so we get an empty first page that can easily be fetched a lot and later modified to point to shortcuts
@@ -368,7 +363,7 @@ function ensureCheckpointDir(ldesStream: string) {
     .split(":")
     .join("-")
     .split(".")[0];
-  const checkpointDir = `${DATA_FOLDER}/${ldesStream}/checkpoints/${checkpointName}`;
+  const checkpointDir = `${ENV.DATA_FOLDER}/${ldesStream}/checkpoints/${checkpointName}`;
   if (!fs.existsSync(checkpointDir)) {
     fs.mkdirSync(checkpointDir, { recursive: true });
   }
@@ -376,14 +371,14 @@ function ensureCheckpointDir(ldesStream: string) {
 }
 
 async function writeCheckpointRef(ldesStream: string, checkpointName: string) {
-  let directory = `${DATA_FOLDER}/${ldesStream}`;
+  let directory = `${ENV.DATA_FOLDER}/${ldesStream}`;
   const stream = fs.createWriteStream(`${directory}/checkpoints.ttl`, {
     flags: "a",
   });
   console.log(
     `[${ldesStream}]  writing checkpoint reference ${checkpointName}`,
   );
-  const streamUri = `<${LDES_BASE}${ldesStream}>`;
+  const streamUri = `<${ENV.LDES_BASE}${ldesStream}>`;
   const triplesToAdd = `
     ${streamUri} <http://mu.semte.ch/vocabularies/ext/ldesCheckpoint> <./checkpoints/${checkpointName}/1> .
     <./checkpoints/${checkpointName}/1> <http://purl.org/dc/terms/modified> "${new Date().toISOString()}"^^<http://www.w3.org/2001/XMLSchema#dateTime> .\n`;
@@ -439,9 +434,9 @@ const checkpointCron = async () => {
   isRunning = false;
 };
 
-export const cronjob = CRON_CHECKPOINT
+export const cronjob = ENV.CRON_CHECKPOINT
   ? CronJob.from({
-      cronTime: CRON_CHECKPOINT,
+      cronTime: ENV.CRON_CHECKPOINT,
       onTick: checkpointCron,
     })
   : null;

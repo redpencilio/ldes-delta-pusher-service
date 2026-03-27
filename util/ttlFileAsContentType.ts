@@ -5,7 +5,7 @@ import jsstream from "stream";
 import rdfParser from "rdf-parse";
 
 import rdfSerializer from "rdf-serialize";
-import { DATA_FOLDER } from "../environment";
+import ENV from "../environment";
 
 /**
  * Reads the triples in a file, assuming text/turtle.
@@ -21,7 +21,7 @@ export function ttlFileAsContentType(
 ): NodeJS.ReadableStream {
   const triplesStream = readTriplesStream(
     file,
-    domainName && domainName + path.relative(`${DATA_FOLDER}/`, file)
+    domainName && domainName + path.relative(`${ENV.DATA_FOLDER}/`, file)
   );
   return rdfSerializer.serialize(triplesStream, {
     contentType: contentType,
