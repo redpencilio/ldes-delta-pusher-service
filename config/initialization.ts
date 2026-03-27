@@ -7,9 +7,16 @@ const regularTypes = {
   "http://data.vlaanderen.be/ns/persoon#Geboorte": "abb",
   "http://schema.org/ContactPoint": "abb",
   "http://www.w3.org/ns/locn#Address": "abb",
-};
+} as const;
 
-export const initialization = {
+type Initialization = {
+  [key: string]: {
+    [key: string]: {
+      filter?: string;
+    }
+  }
+}
+export const initialization: Initialization = {
   public: {
     "http://data.vlaanderen.be/ns/mandaat#Mandataris": {
       filter: `
@@ -32,7 +39,7 @@ export const initialization = {
   },
 };
 
-Object.keys(regularTypes).forEach((type) => {
+(Object.keys(regularTypes) as (keyof typeof regularTypes)[]).forEach((type) => {
   const level = regularTypes[type];
   if (level === "public") {
     initialization.public[type] = {};
