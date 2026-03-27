@@ -1,12 +1,7 @@
 import { querySudo, updateSudo } from "@lblod/mu-auth-sudo";
 import { sparqlEscapeUri, sparqlEscapeDateTime } from "mu";
 import dispatch from "../config/dispatch";
-import {
-  HEALING_DUMP_GRAPH,
-  HEALING_TRANSFORMED_GRAPH,
-  DIRECT_DB_ENDPOINT,
-  HEALING_LIMIT,
-} from "../environment";
+import ENV from "../environment";
 import { HealingConfig } from "../config/healing";
 
 export async function healEntities(
@@ -124,8 +119,8 @@ async function getDifferences(
   const filter = config[stream].entities[type].instanceFilter || "";
 
   const excludedGraphs = config[stream].graphsToExclude || [];
-  excludedGraphs.push(HEALING_DUMP_GRAPH);
-  excludedGraphs.push(HEALING_TRANSFORMED_GRAPH);
+  excludedGraphs.push(ENV.HEALING_DUMP_GRAPH);
+  excludedGraphs.push(ENV.HEALING_TRANSFORMED_GRAPH);
   const graphFilter = config[stream].graphFilter || "";
   const excludeGraphs = excludedGraphs
     .map((graph: string) => sparqlEscapeUri(graph))
@@ -200,12 +195,12 @@ async function getMissingValuesLdes(options: {
       ${graphFilter}
 
       FILTER NOT EXISTS {
-        GRAPH ${sparqlEscapeUri(HEALING_TRANSFORMED_GRAPH)} {
+        GRAPH ${sparqlEscapeUri(ENV.HEALING_TRANSFORMED_GRAPH)} {
           ?s ?p ?o.
         }
       }
       ${healingFilter}
-    } LIMIT ${HEALING_LIMIT}
+    } LIMIT ${ENV.HEALING_LIMIT}
   `;
 
   if (process.env.VIRTUOSO_DATE_WORKAROUND === "true") {
@@ -223,20 +218,20 @@ async function getMissingValuesLdes(options: {
       ${graphFilter}
 
       FILTER NOT EXISTS {
-        GRAPH ${sparqlEscapeUri(HEALING_TRANSFORMED_GRAPH)} {
+        GRAPH ${sparqlEscapeUri(ENV.HEALING_TRANSFORMED_GRAPH)} {
           ?s ?p ?o2.
           FILTER(STR(?o) = STR(?o2))
         }
       }
       ${healingFilter}
-    } LIMIT ${HEALING_LIMIT}
+    } LIMIT ${ENV.HEALING_LIMIT}
   `;
   }
 
   const result = await querySudo(
     healingQuery,
     {},
-    { sparqlEndpoint: DIRECT_DB_ENDPOINT }
+    { sparqlEndpoint: ENV.DIRECT_DB_ENDPOINT }
   );
   return result.results.bindings.map((binding) => binding);
 }
@@ -267,7 +262,7 @@ async function erectMissingTombstones(
   }
 
   const where = `
-      GRAPH ${sparqlEscapeUri(HEALING_TRANSFORMED_GRAPH)} {
+      GRAPH ${sparqlEscapeUri(ENV.HEALING_TRANSFORMED_GRAPH)} {
         ?s a ${sparqlEscapeUri(type)}.
       }
       FILTER NOT EXISTS {

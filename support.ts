@@ -1,6 +1,6 @@
 // @ts-ignore
 import { sparqlEscapeUri, sparqlEscape, sparqlEscapeBool } from "mu";
-import { LDES_FOLDER, LDES_FRAGMENTER } from "./environment";
+import ENV from "./environment";
 import { Changeset, Quad, Term } from "./types";
 import { addData, getConfigFromEnv } from "@lblod/ldes-producer";
 
@@ -54,7 +54,7 @@ export function toSparqlTriple(quad: Quad): string {
 
 export async function moveTriples(
   changesets: Changeset[],
-  stream = LDES_FOLDER
+  stream = ENV.LDES_FOLDER
 ) {
   let turtleBody = "";
   for (const { inserts } of changesets) {
@@ -76,6 +76,6 @@ export async function moveTriples(
     contentType: "text/turtle",
     folder: stream,
     body: turtleBody,
-    fragmenter: LDES_FRAGMENTER,
+    fragmenter: ENV.LDES_FRAGMENTER,
   });
 }

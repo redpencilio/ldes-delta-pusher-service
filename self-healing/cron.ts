@@ -8,7 +8,7 @@ import {
   deleteDuplicatesForValues,
 } from "./upload-entities-to-db";
 import { transformLdesDataToEntities } from "./transform-ldes-data-to-entities";
-import { CRON_HEALING, DATA_FOLDER } from "../environment";
+import ENV from "../environment";
 import { HealingConfig, getHealingConfig } from "../config/healing";
 import { ttlFileAsString } from "../util/ttlFileAsContentType";
 
@@ -99,7 +99,7 @@ async function determineFirstPageOrCheckpoint(
   try {
     console.log(`Fetching checkpoints for stream ${stream}`);
     const fileString = await ttlFileAsString(
-      `${DATA_FOLDER}/${stream}/checkpoints.ttl`,
+      `${ENV.DATA_FOLDER}/${stream}/checkpoints.ttl`,
       "application/ld+json"
     );
     const modified = "http://purl.org/dc/terms/modified";
@@ -159,6 +159,6 @@ async function determineNextPage(
 }
 
 export const cronjob = CronJob.from({
-  cronTime: CRON_HEALING,
+  cronTime: ENV.CRON_HEALING,
   onTick: cronMethod,
 });
