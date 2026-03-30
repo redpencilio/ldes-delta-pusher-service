@@ -1,3 +1,4 @@
+// @ts-expect-error graphy doesn't have type definitions
 import ttl_read from "@graphy/content.ttl.read";
 import fs from "fs";
 import path from "path";

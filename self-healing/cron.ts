@@ -82,8 +82,8 @@ async function fetchPage(stream: string, page: number): Promise<string | null> {
       nodeId: page,
     });
     return await text(response.stream);
-  } catch (e) {
-    if (e.status === 404) {
+  } catch (e: unknown) {
+    if (e && typeof e === 'object' && 'status' in e && e.status === 404) {
       console.log(
         `Page ${page} not found, assuming it's the last page of the stream`,
       );
@@ -107,15 +107,25 @@ async function determineFirstPageOrCheckpoint(
     const twoDaysAgo = new Date().getTime() - 1000 * 60 * 60 * 48;
     // only keep checkpoints that are older than two days so we are
     // reasonably sure the healing has taken effect in the main stream
-    const checkpoints = JSON.parse(fileString).filter((i) => {
+    const checkpoints = JSON.parse(fileString) as {
+      "@id": string;
+      "http://mu.semte.ch/vocabularies/ext/ldesCheckpoint"?: {
+        "@id": string;
+      }[];
+      "http://purl.org/dc/terms/modified"?: {
+        "@value": string;
+        "@type": string;
+      }[];
+    }[];
+    const filteredCheckpoints = checkpoints.filter((i) => {
       return (
         i[modified] && new Date(i[modified][0]["@value"]).getTime() < twoDaysAgo
       );
     });
-    checkpoints.sort((a: any, b: any) =>
+    filteredCheckpoints.sort((a: any, b: any) =>
       a[modified][0].value < b[modified][0].value ? 1 : -1,
     );
-    const checkpointName = checkpoints[0]["@id"].split("checkpoints/")[1];
+    const checkpointName = filteredCheckpoints[0]["@id"].split("checkpoints/")[1];
     const checkpointFolderName = checkpointName.split("/")[0];
     return { path: `${stream}/checkpoints/${checkpointFolderName}`, file: 1 };
   } catch (e) {
