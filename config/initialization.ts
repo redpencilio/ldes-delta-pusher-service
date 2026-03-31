@@ -13,6 +13,9 @@ type Initialization = {
   [key: string]: {
     [key: string]: {
       filter?: string;
+      graphFilter?: string;
+      extraConstruct?: string;
+      extraWhere?: string;
     }
   }
 }

@@ -40,7 +40,7 @@ const sparqlEscapeObject = (bindingObject: Term): string => {
       (typeof bindingObject.value === 'string' && bindingObject.value?.toLowerCase() === "true");
     return sparqlEscapeBool(value);
   }
-  return bindingObject.type === "uri"
+  return (bindingObject.type === "uri" && typeof bindingObject.value === 'string')
     ? sparqlEscapeUri(bindingObject.value)
     : sparqlEscape(bindingObject.value, escapeType);
 };

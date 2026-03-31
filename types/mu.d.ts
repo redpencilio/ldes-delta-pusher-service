@@ -50,7 +50,7 @@ declare module 'mu' {
   export const sparqlEscapeInt: (value: number) => string;
   export const sparqlEscapeDecimal: (value: number) => string;
   export const sparqlEscapeFloat: (value: number) => string;
-  export const sparqlEscapeDateTime: (value: Date) => string;
+  export const sparqlEscapeDateTime: (value: Date | string) => string;
   export const sparqlEscapeBool: (value: boolean) => string;
   export const sparqlEscapeDate: (value: Date) => string;
   export const errorHandler: RequestHandler;

@@ -2,7 +2,7 @@
 import ttl_read from "@graphy/content.ttl.read";
 import fs from "fs";
 import path from "path";
-import jsstream from "stream";
+import jsstream, { type Readable, type Stream } from "stream";
 import rdfParser from "rdf-parse";
 
 import rdfSerializer from "rdf-serialize";
@@ -42,7 +42,7 @@ export function ttlFileAsString(
   });
 }
 
-function readTriplesStream(file: string, baseIRI?: string): jsstream.Readable {
+function readTriplesStream(file: string, baseIRI?: string) {
   if (!fs.existsSync(file)) {
     throw Error(`File does not exist: ${file}`);
   }
