@@ -22,7 +22,8 @@ let currentStream: fs.WriteStream;
 let currentStreamCharCount = 0;
 
 function createTtlSparqlClient(turtle = true) {
-  let options: any = {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const options: any = {
     requestDefaults: { headers: {} },
   };
   if (turtle) {
@@ -178,7 +179,7 @@ async function connectCheckpointToLastLDESPage(
   ldesStream: string,
   checkpoint: string,
 ) {
-  let { number: fileCount } = getCurrentFile(ldesStream, checkpoint);
+  const { number: fileCount } = getCurrentFile(ldesStream, checkpoint);
   const { number: realStreamFileCount } = getCurrentFile(ldesStream);
 
   const uuidForRelation = uuid();
@@ -313,6 +314,7 @@ async function forceNewFile(ldesStream: string, checkpoint?: string) {
 
   let {
     file: currentFile,
+    // eslint-disable-next-line prefer-const
     directory,
     number,
   } = getCurrentFile(ldesStream, checkpoint);
@@ -374,7 +376,7 @@ function ensureCheckpointDir(ldesStream: string) {
 }
 
 async function writeCheckpointRef(ldesStream: string, checkpointName: string) {
-  let directory = `${ENV.DATA_FOLDER}/${ldesStream}`;
+  const directory = `${ENV.DATA_FOLDER}/${ldesStream}`;
   const stream = fs.createWriteStream(`${directory}/checkpoints.ttl`, {
     flags: "a",
   });
