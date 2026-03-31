@@ -1,4 +1,3 @@
-
 // @ts-expect-error sparql-client-2 doesn't have type declarations
 import sparqlClient from "sparql-client-2";
 const { SparqlClient } = sparqlClient;

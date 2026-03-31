@@ -17,11 +17,11 @@ import ENV from "../environment";
 export function ttlFileAsContentType(
   file: string,
   contentType: string,
-  domainName?: string
+  domainName?: string,
 ): NodeJS.ReadableStream {
   const triplesStream = readTriplesStream(
     file,
-    domainName && domainName + path.relative(`${ENV.DATA_FOLDER}/`, file)
+    domainName && domainName + path.relative(`${ENV.DATA_FOLDER}/`, file),
   );
   return rdfSerializer.serialize(triplesStream, {
     contentType: contentType,
@@ -30,7 +30,7 @@ export function ttlFileAsContentType(
 
 export function ttlFileAsString(
   file: string,
-  contentType: string
+  contentType: string,
 ): Promise<string> {
   const stream = ttlFileAsContentType(file, contentType);
   const chunks: Buffer[] = [];

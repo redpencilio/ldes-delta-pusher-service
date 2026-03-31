@@ -16,9 +16,9 @@ type Initialization = {
       graphFilter?: string;
       extraConstruct?: string;
       extraWhere?: string;
-    }
-  }
-}
+    };
+  };
+};
 export const initialization: Initialization = {
   public: {
     "http://data.vlaanderen.be/ns/mandaat#Mandataris": {
