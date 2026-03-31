@@ -36,23 +36,24 @@ const sparqlEscapeObject = (bindingObject: Term): string => {
     const value =
       bindingObject.value === true ||
       bindingObject.value === 1 ||
-      (typeof bindingObject.value === 'string' && bindingObject.value?.toLowerCase() === "true");
+      (typeof bindingObject.value === "string" &&
+        bindingObject.value?.toLowerCase() === "true");
     return sparqlEscapeBool(value);
   }
-  return (bindingObject.type === "uri" && typeof bindingObject.value === 'string')
+  return bindingObject.type === "uri" && typeof bindingObject.value === "string"
     ? sparqlEscapeUri(bindingObject.value)
     : sparqlEscape(bindingObject.value, escapeType);
 };
 
 export function toSparqlTriple(quad: Quad): string {
   return `${sparqlEscapeObject(quad.subject)} ${sparqlEscapeObject(
-    quad.predicate
+    quad.predicate,
   )} ${sparqlEscapeObject(quad.object)}.`;
 }
 
 export async function moveTriples(
   changesets: DeltaChangeset[],
-  stream = ENV.LDES_FOLDER
+  stream = ENV.LDES_FOLDER,
 ) {
   let turtleBody = "";
   for (const { inserts } of changesets) {

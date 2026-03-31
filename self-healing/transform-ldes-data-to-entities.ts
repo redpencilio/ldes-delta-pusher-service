@@ -39,7 +39,7 @@ async function transformBatchOfRemainingEntities() {
     }
   `,
     {},
-    { sparqlEndpoint: ENV.DIRECT_DB_ENDPOINT }
+    { sparqlEndpoint: ENV.DIRECT_DB_ENDPOINT },
   );
 
   // delete and insert split because of Virtuoso 22003 Error SR017: aref: Bad array subscript (zero-based) 4 for an arg of type ARRAY_OF_POINTER (193) and length 2.
@@ -64,7 +64,7 @@ async function transformBatchOfRemainingEntities() {
       }
     }`,
     {},
-    { sparqlEndpoint: ENV.DIRECT_DB_ENDPOINT }
+    { sparqlEndpoint: ENV.DIRECT_DB_ENDPOINT },
   );
 }
 
@@ -83,9 +83,9 @@ async function hasRemainingEntities() {
       }
     }`,
     {},
-    { sparqlEndpoint: ENV.DIRECT_DB_ENDPOINT }
+    { sparqlEndpoint: ENV.DIRECT_DB_ENDPOINT },
   );
-  if(!result){
+  if (!result) {
     return false;
   }
   const count = parseInt(result.results.bindings[0].count.value);

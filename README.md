@@ -37,7 +37,6 @@ Of course, you can also use the dispatcher for a more robust way, but the need f
 
 Note also the process can take quite a long time depending on the size of your database. The endpoint is currently not taskified and will block the request for as long as it's running.
 
-
 ## Checkpoints
 
 Once your LDES has been producing for a while, it can be annoying for clients to have to fetch all changes since the beginning of the stream. They may only be interested in the changes in the last month for instance. Or they may just want to be in sync with the current state of the stream.
