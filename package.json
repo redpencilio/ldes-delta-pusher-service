@@ -19,14 +19,18 @@
     "sparql-client-2": "https://github.com/erikap/node-sparql-client.git"
   },
   "scripts": {
+    "lint": "concurrently \"pnpm:lint:*(!fix)\" --names \"lint:\"",
+    "lint:types": "tsc",
     "release": "release-it"
   },
   "devDependencies": {
     "@release-it-plugins/lerna-changelog": "^5.0.0",
+    "@tsconfig/node20": "^20.1.9",
     "@types/express": "^4.17.17",
     "@types/node": "^17.0.31",
     "@types/node-fetch": "^2.6.2",
     "release-it": "^15.6.0",
+    "typescript": "^6.0.2",
     "zod": "^4.3.6"
   },
   "release-it": {
