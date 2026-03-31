@@ -10,13 +10,17 @@ export type Term = {
   lang?: string;
 });
 
+
+
 export type Quad = {
   subject: Term;
   predicate: Term;
   object: Term;
 };
 
-export type Changeset = {
+export type DeltaChangeset = {
   inserts: Quad[];
   deletes: Quad[];
 };
+
+
