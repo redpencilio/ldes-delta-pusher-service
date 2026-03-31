@@ -31,7 +31,7 @@ export async function insertLdesPageToDumpGraph(
   tripleStore.parse(turtleText, graph, "text/turtle");
   const statements = [...tripleStore.graph.statements];
   const tripleCount = statements.length;
-  let batch: any[] = [];
+  let batch: Statement[] = [];
   for (let index = 0; index < tripleCount; index += ENV.HEALING_BATCH_SIZE) {
     batch = statements.splice(0, ENV.HEALING_BATCH_SIZE);
     if (batch.length === 0) {

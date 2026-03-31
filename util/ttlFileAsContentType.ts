@@ -2,7 +2,6 @@
 import ttl_read from "@graphy/content.ttl.read";
 import fs from "fs";
 import path from "path";
-import jsstream, { type Readable, type Stream } from "stream";
 import rdfParser from "rdf-parse";
 
 import rdfSerializer from "rdf-serialize";
