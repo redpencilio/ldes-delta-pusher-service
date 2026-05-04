@@ -14,8 +14,8 @@
     "forking-store": "^2.2.0",
     "node-fetch": "^2.6.7",
     "rdf-parse": "^2.0.0",
-    "rdf-serialize": "^2.0.0",
     "rdflib": "^2.2.35",
+    "rdf-serialize": "^5.1.0",
     "sparql-client-2": "https://github.com/erikap/node-sparql-client.git"
   },
   "scripts": {

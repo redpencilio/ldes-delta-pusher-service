@@ -4,8 +4,8 @@ import path from "path";
 import jsstream from "stream";
 import rdfParser from "rdf-parse";
 
-import rdfSerializer from "rdf-serialize";
 import ENV from "../environment";
+import {rdfSerializer} from "rdf-serialize";
 
 /**
  * Reads the triples in a file, assuming text/turtle.
