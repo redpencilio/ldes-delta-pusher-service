@@ -23,6 +23,6 @@ const ENV = EnvSchema.parse(process.env);
 process.env.BASE_URL = ENV.LDES_BASE; // required by the ldes-producer
 
 console.log("\n Configuration: ");
-console.log(`\n ${ENV}`);
+console.log(`\n ${JSON.stringify(ENV)}`);
 
 export default ENV;
