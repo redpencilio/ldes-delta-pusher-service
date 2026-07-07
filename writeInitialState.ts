@@ -12,10 +12,8 @@ import ENV from "./environment";
 import { CronJob } from "cron";
 import { LDES } from "@lblod/ldes-producer";
 
-const limit = parseInt(process.env.INITIAL_STATE_LIMIT || "10000");
-const MAX_PAGE_SIZE_BYTES = parseInt(
-  process.env.MAX_PAGE_SIZE_BYTES || "10000000",
-);
+const limit = ENV.INITIAL_STATE_LIMIT;
+const MAX_PAGE_SIZE_BYTES = ENV.MAX_PAGE_SIZE_BYTES;
 
 let currentStream: fs.WriteStream;
 let currentStreamCharCount = 0;

@@ -77,7 +77,7 @@ app.post("/manual-healing", async function (_req: Request, res: Response) {
 });
 
 new Promise(async (resolve) => {
-  if (process.env.WRITE_INITIAL_STATE === "true") {
+  if (ENV.WRITE_INITIAL_STATE) {
     await writeInitialState();
   }
 

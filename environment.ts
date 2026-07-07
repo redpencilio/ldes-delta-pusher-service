@@ -4,8 +4,10 @@ const EnvSchema = z.object({
   LDES_FRAGMENTER: z.string().optional(),
   LDES_FOLDER: z.string(),
   DATA_FOLDER: z.string().default("/data"),
+
   AUTO_HEALING: z.stringbool().default(false),
   CRON_HEALING: z.string().default("0 * * * *" /* Every hour */),
+
   CRON_CHECKPOINT: z.string().optional(),
   HEALING_LIMIT: z.coerce.number().default(3000),
   HEALING_BATCH_SIZE: z.coerce.number().default(100),
@@ -17,6 +19,11 @@ const EnvSchema = z.object({
   LDES_BASE: z
     .string()
     .transform((base) => (!base.endsWith("/") ? base + "/" : base)),
+
+  WRITE_INITIAL_STATE: z.stringbool().default(false),
+  INITIAL_STATE_LIMIT: z.coerce.number().default(10000),
+  MAX_PAGE_SIZE_BYTES: z.coerce.number().default(10000000),
+  VIRTUOSO_DATE_WORKAROUND: z.stringbool().default(false),
 });
 
 const ENV = EnvSchema.parse(process.env);
