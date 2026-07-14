@@ -224,18 +224,15 @@ async function writeToCurrentFile(
   contents: string,
   checkpointName?: string,
 ) {
-  currentStream.write(contents + "\n");
-  currentStreamCharCount += contents.length;
-  if (currentStreamCharCount > MAX_PAGE_SIZE_BYTES) {
+  const contentToWrite = contents + "\n";
+  if ( currentStreamCharCount > 0 && currentStreamCharCount + contentToWrite.length > MAX_PAGE_SIZE_BYTES) {
     console.log(
-      `[${ldesStream}]  reached max page size ${currentStreamCharCount} > ${MAX_PAGE_SIZE_BYTES}, starting new file`,
+      `[${ldesStream}]  reached max page size ${MAX_PAGE_SIZE_BYTES}, starting new file`,
     );
     await forceNewFile(ldesStream, checkpointName);
-  } else {
-    console.log(
-      `[${ldesStream}]  current page size ${currentStreamCharCount} < ${MAX_PAGE_SIZE_BYTES}`,
-    );
   }
+  currentStream.write(contentToWrite);
+  currentStreamCharCount += contentToWrite.length;
 }
 
 async function writeInitialStateForStreamAndType(
