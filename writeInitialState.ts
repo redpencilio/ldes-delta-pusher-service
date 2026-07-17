@@ -225,6 +225,10 @@ async function writeToCurrentFile(
   checkpointName?: string,
 ) {
   const contentToWrite = contents + "\n";
+  if (contentToWrite.length > MAX_PAGE_SIZE_BYTES){
+    console.warn(`Writing batch of ${contentToWrite.length} bytes to page, which exceeds the MAX_PAGE_SIZE_BYTES limit (${MAX_PAGE_SIZE_BYTES} bytes).
+      Consider a smaller batch size (INITIAL_STATE_LIMIT) towards the future.`)
+  }
   if ( currentStreamCharCount > 0 && currentStreamCharCount + contentToWrite.length > MAX_PAGE_SIZE_BYTES) {
     console.log(
       `[${ldesStream}]  reached max page size ${MAX_PAGE_SIZE_BYTES}, starting new file`,
