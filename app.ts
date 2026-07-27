@@ -79,12 +79,14 @@ app.post("/manual-healing", async function (_req: Request, res: Response) {
 app.post("/manual-checkpoint", async function (_req: Request, res: Response) {
   try {
     await writeCheckpoint();
-  } catch (e){
+  } catch (e) {
     console.error(e);
     return res.status(500).send();
   }
-  res.status(200).send(`Checkpoint creation successful at ${new Date().toISOString()}`)
-})
+  res
+    .status(200)
+    .send(`Checkpoint creation successful at ${new Date().toISOString()}`);
+});
 
 new Promise(async (resolve) => {
   if (ENV.WRITE_INITIAL_STATE) {
