@@ -4,7 +4,7 @@ import { app, errorHandler } from "mu";
 import dispatch from "./config/dispatch";
 
 import { DeltaChangeset } from "./types";
-import { writeInitialState } from "./writeInitialState";
+import { writeCheckpoint, writeInitialState } from "./writeInitialState";
 
 import { cronjob as autoHealing, manualTrigger } from "./self-healing/cron";
 import ENV from "./environment";
@@ -76,8 +76,20 @@ app.post("/manual-healing", async function (_req: Request, res: Response) {
     .send(`Healing succesfully completed at ${new Date().toISOString()}`);
 });
 
+app.post("/manual-checkpoint", async function (_req: Request, res: Response) {
+  try {
+    await writeCheckpoint();
+  } catch (e) {
+    console.error(e);
+    return res.status(500).send();
+  }
+  res
+    .status(200)
+    .send(`Checkpoint creation successful at ${new Date().toISOString()}`);
+});
+
 new Promise(async (resolve) => {
-  if (process.env.WRITE_INITIAL_STATE === "true") {
+  if (ENV.WRITE_INITIAL_STATE) {
     await writeInitialState();
   }
 

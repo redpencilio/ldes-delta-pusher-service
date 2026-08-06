@@ -211,7 +211,7 @@ async function getMissingValuesLdes(options: {
     } LIMIT ${ENV.HEALING_LIMIT}
   `;
 
-  if (process.env.VIRTUOSO_DATE_WORKAROUND === "true") {
+  if (ENV.VIRTUOSO_DATE_WORKAROUND) {
     healingQuery = `
     SELECT DISTINCT ?s ?p ?o
     WHERE {

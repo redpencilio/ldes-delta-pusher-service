@@ -12,10 +12,8 @@ import ENV from "./environment";
 import { CronJob } from "cron";
 import { LDES } from "@lblod/ldes-producer";
 
-const limit = parseInt(process.env.INITIAL_STATE_LIMIT || "10000");
-const MAX_PAGE_SIZE_BYTES = parseInt(
-  process.env.MAX_PAGE_SIZE_BYTES || "10000000",
-);
+const limit = ENV.INITIAL_STATE_LIMIT;
+const MAX_PAGE_SIZE_BYTES = ENV.MAX_PAGE_SIZE_BYTES;
 
 let currentStream: fs.WriteStream;
 let currentStreamCharCount = 0;
@@ -226,18 +224,22 @@ async function writeToCurrentFile(
   contents: string,
   checkpointName?: string,
 ) {
-  currentStream.write(contents + "\n");
-  currentStreamCharCount += contents.length;
-  if (currentStreamCharCount > MAX_PAGE_SIZE_BYTES) {
+  const contentToWrite = contents + "\n";
+  if (contentToWrite.length > MAX_PAGE_SIZE_BYTES) {
+    console.warn(`Writing batch of ${contentToWrite.length} bytes to page, which exceeds the MAX_PAGE_SIZE_BYTES limit (${MAX_PAGE_SIZE_BYTES} bytes).
+      Consider a smaller batch size (INITIAL_STATE_LIMIT) towards the future.`);
+  }
+  if (
+    currentStreamCharCount > 0 &&
+    currentStreamCharCount + contentToWrite.length > MAX_PAGE_SIZE_BYTES
+  ) {
     console.log(
-      `[${ldesStream}]  reached max page size ${currentStreamCharCount} > ${MAX_PAGE_SIZE_BYTES}, starting new file`,
+      `[${ldesStream}]  reached max page size ${MAX_PAGE_SIZE_BYTES}, starting new file`,
     );
     await forceNewFile(ldesStream, checkpointName);
-  } else {
-    console.log(
-      `[${ldesStream}]  current page size ${currentStreamCharCount} < ${MAX_PAGE_SIZE_BYTES}`,
-    );
   }
+  currentStream.write(contentToWrite);
+  currentStreamCharCount += contentToWrite.length;
 }
 
 async function writeInitialStateForStreamAndType(
