@@ -8,5 +8,10 @@ steps:
     depends_on: [install]
     commands:
       - npm run lint:types
+  lint:js:
+    image: node:20-alpine
+    depends_on: [install]
+    commands:
+      - npm run lint:js
 when:
   - event: pull_request

@@ -1,6 +1,5 @@
 import bodyParser from "body-parser";
 import type { Request, Response } from "express";
-//@ts-ignore
 import { app, errorHandler } from "mu";
 import dispatch from "./config/dispatch";
 
@@ -15,7 +14,7 @@ import { cronjob as checkpointCron } from "./writeInitialState";
 app.use(
   bodyParser.json({
     limit: "500mb",
-    // @ts-ignore
+    // @ts-expect-error fix types
     type: function (req: Request) {
       return /^application\/json/.test(req.get("content-type") as string);
     },

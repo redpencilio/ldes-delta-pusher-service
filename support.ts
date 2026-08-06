@@ -1,4 +1,3 @@
-// @ts-ignore
 import { sparqlEscapeUri, sparqlEscape, sparqlEscapeBool } from "mu";
 import ENV from "./environment";
 import { DeltaChangeset, Quad, Term } from "./types";

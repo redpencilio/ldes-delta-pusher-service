@@ -21,10 +21,15 @@
   },
   "scripts": {
     "lint": "concurrently \"npm:lint:*(!fix)\" --names \"lint:\"",
+    "lint:fix": "concurrently \"pnpm:lint:*:fix\" --names \"fix:\"",
+    "lint:js": "eslint",
+    "lint:js:fix": "eslint --fix",
     "lint:types": "tsc",
     "release": "release-it"
   },
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@eslint/json": "^1.2.0",
     "@release-it-plugins/lerna-changelog": "^5.0.0",
     "@tsconfig/node20": "^20.1.9",
     "@types/express": "^4.17.17",
@@ -32,8 +37,12 @@
     "@types/node-fetch": "^2.6.2",
     "@types/uuid": "^10.0.0",
     "concurrently": "^10.0.4",
+    "eslint": "^10.1.0",
+    "globals": "^17.4.0",
+    "jiti": "^2.6.1",
     "release-it": "^15.6.0",
-    "typescript": "^6.0.2"
+    "typescript": "^6.0.2",
+    "typescript-eslint": "^8.58.0"
   },
   "release-it": {
     "github": {

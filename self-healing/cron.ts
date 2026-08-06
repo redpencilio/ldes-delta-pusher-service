@@ -122,13 +122,13 @@ async function determineFirstPageOrCheckpoint(
         i[modified] && new Date(i[modified][0]["@value"]).getTime() < twoDaysAgo
       );
     });
-    filteredCheckpoints.sort((a: any, b: any) =>
-      a[modified][0].value < b[modified][0].value ? 1 : -1,
+    filteredCheckpoints.sort((a, b) =>
+      new Date(a[modified]![0]['@value']) < new Date(b[modified]![0]['@value']) ? 1 : -1,
     );
     const checkpointName = filteredCheckpoints[0]["@id"].split("checkpoints/")[1];
     const checkpointFolderName = checkpointName.split("/")[0];
     return { path: `${stream}/checkpoints/${checkpointFolderName}`, file: 1 };
-  } catch (e) {
+  } catch {
     return { path: `${stream}`, file: 1 };
   }
 }
