@@ -1,7 +1,7 @@
+// @ts-expect-error graphy doesn't have type definitions
 import ttl_read from "@graphy/content.ttl.read";
 import fs from "fs";
 import path from "path";
-import jsstream from "stream";
 import { rdfParser } from "rdf-parse";
 
 import ENV from "../environment";
@@ -41,7 +41,7 @@ export function ttlFileAsString(
   });
 }
 
-function readTriplesStream(file: string, baseIRI?: string): jsstream.Readable {
+function readTriplesStream(file: string, baseIRI?: string) {
   if (!fs.existsSync(file)) {
     throw Error(`File does not exist: ${file}`);
   }

@@ -32,14 +32,16 @@ const triggerHealing = async (startMessage: string) => {
   }
   isRunning = false;
 };
-const cronMethod = async () =>  triggerHealing(`
+const cronMethod = async () =>
+  triggerHealing(`
     *******************************************************************
     *** Pull LDES triggered by cron job at ${new Date().toISOString()} ***
-    *******************************************************************`)
-export const manualTrigger = async () =>  triggerHealing(`
+    *******************************************************************`);
+export const manualTrigger = async () =>
+  triggerHealing(`
     *******************************************************************
     *** Pull LDES triggered by manual trigger at ${new Date().toISOString()} ***
-    *******************************************************************`)
+    *******************************************************************`);
 
 async function healStream(stream: string, config: HealingConfig) {
   const startTime = performance.now();
@@ -47,7 +49,7 @@ async function healStream(stream: string, config: HealingConfig) {
   await clearHealingTempGraphs();
   await loadStreamIntoDumpGraph(stream);
   console.log(
-    `Loading LDES into dump graph took ${performance.now() - startTime} ms`
+    `Loading LDES into dump graph took ${performance.now() - startTime} ms`,
   );
   await transformLdesDataToEntities();
   await healEntities(stream, config);
@@ -56,9 +58,8 @@ async function healStream(stream: string, config: HealingConfig) {
 
 async function loadStreamIntoDumpGraph(stream: string): Promise<void> {
   let isLdesInsertedInDatabase = false;
-  let currentPage: PagePointer | null = await determineFirstPageOrCheckpoint(
-    stream
-  );
+  let currentPage: PagePointer | null =
+    await determineFirstPageOrCheckpoint(stream);
   while (!isLdesInsertedInDatabase && currentPage) {
     const turtleText = await fetchPage(currentPage.path, currentPage.file);
     if (turtleText) {
@@ -81,40 +82,50 @@ async function fetchPage(stream: string, page: number): Promise<string | null> {
       nodeId: page,
     });
     return await text(response.stream);
-  } catch (e) {
-    if (e.status === 404) {
+  } catch (e: unknown) {
+    if (e && typeof e === 'object' && 'status' in e && e.status === 404) {
       console.log(
-        `Page ${page} not found, assuming it's the last page of the stream`
+        `Page ${page} not found, assuming it's the last page of the stream`,
       );
       return null;
     }
     throw new Error(
-      `Failed to fetch LDES page from stream ${stream}, error: ${e}`
+      `Failed to fetch LDES page from stream ${stream}, error: ${e}`,
     );
   }
 }
 async function determineFirstPageOrCheckpoint(
-  stream: string
+  stream: string,
 ): Promise<PagePointer> {
   try {
     console.log(`Fetching checkpoints for stream ${stream}`);
     const fileString = await ttlFileAsString(
       `${ENV.DATA_FOLDER}/${stream}/checkpoints.ttl`,
-      "application/ld+json"
+      "application/ld+json",
     );
     const modified = "http://purl.org/dc/terms/modified";
     const twoDaysAgo = new Date().getTime() - 1000 * 60 * 60 * 48;
     // only keep checkpoints that are older than two days so we are
     // reasonably sure the healing has taken effect in the main stream
-    const checkpoints = JSON.parse(fileString).filter((i) => {
+    const checkpoints = JSON.parse(fileString) as {
+      "@id": string;
+      "http://mu.semte.ch/vocabularies/ext/ldesCheckpoint"?: {
+        "@id": string;
+      }[];
+      "http://purl.org/dc/terms/modified"?: {
+        "@value": string;
+        "@type": string;
+      }[];
+    }[];
+    const filteredCheckpoints = checkpoints.filter((i) => {
       return (
         i[modified] && new Date(i[modified][0]["@value"]).getTime() < twoDaysAgo
       );
     });
-    checkpoints.sort((a: any, b: any) =>
-      a[modified][0].value < b[modified][0].value ? 1 : -1
+    filteredCheckpoints.sort((a: any, b: any) =>
+      a[modified][0].value < b[modified][0].value ? 1 : -1,
     );
-    const checkpointName = checkpoints[0]["@id"].split("checkpoints/")[1];
+    const checkpointName = filteredCheckpoints[0]["@id"].split("checkpoints/")[1];
     const checkpointFolderName = checkpointName.split("/")[0];
     return { path: `${stream}/checkpoints/${checkpointFolderName}`, file: 1 };
   } catch (e) {
@@ -124,7 +135,7 @@ async function determineFirstPageOrCheckpoint(
 
 async function determineNextPage(
   stream: string,
-  currentPage: PagePointer
+  currentPage: PagePointer,
 ): Promise<PagePointer | null> {
   const pathWithoutEndSlash = currentPage.path.endsWith("/")
     ? currentPage.path.slice(0, -1)
@@ -139,15 +150,11 @@ async function determineNextPage(
     } LIMIT 1
   `;
   const result = await querySudo(query);
-  console.log(
-    `Next page query result: ${JSON.stringify(
-      result.results.bindings[0]?.page?.value
-    )}`
-  );
-  if (result.results.bindings.length === 0) {
+  if (!result || result.results.bindings.length === 0) {
     return null;
   }
   const page = result.results.bindings[0].page.value;
+  console.log(`Next page query result: ${JSON.stringify(page)}`);
   const safePartOfPageUrl = page.split(`/${stream}/`)[1];
   const splitSafePart = safePartOfPageUrl.split("/");
   const tail = splitSafePart[splitSafePart.length - 1];

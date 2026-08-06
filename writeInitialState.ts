@@ -1,5 +1,8 @@
+
+// @ts-expect-error sparql-client-2 doesn't have type declarations
 import sparqlClient from "sparql-client-2";
 const { SparqlClient } = sparqlClient;
+
 import { sparqlEscapeUri, sparqlEscapeDateTime } from "mu";
 import httpContext from "express-http-context";
 import fs from "fs";
@@ -114,7 +117,7 @@ async function executeDirectQuery(
   }
 }
 
-async function countMatchesForType(stream, type) {
+async function countMatchesForType(stream: string, type: string) {
   const filter = initialization[stream]?.[type]?.filter || "";
   const graphFilter = initialization[stream]?.[type]?.graphFilter || "";
   const res = await querySudo(
@@ -127,7 +130,7 @@ async function countMatchesForType(stream, type) {
       ${graphFilter}
     }`,
   );
-  return parseInt(res.results.bindings[0].count.value);
+  return parseInt(res!.results.bindings[0].count.value);
 }
 
 function getCurrentFile(ldesStream: string, checkpoint?: string) {

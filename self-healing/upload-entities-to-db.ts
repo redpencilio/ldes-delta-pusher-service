@@ -1,9 +1,10 @@
 import { updateSudo } from "@lblod/mu-auth-sudo";
 import { sparqlEscapeUri, sparqlEscapeString, sparqlEscape } from "mu";
 import ForkingStore from "forking-store";
-import { NamedNode } from "rdflib";
+import { isLiteral, isNamedNode, NamedNode, type Statement } from "rdflib";
 
 import ENV from "../environment";
+import type { Term } from "rdflib/lib/tf-types";
 
 export async function clearHealingTempGraphs(): Promise<void> {
   await updateSudo(
@@ -126,7 +127,7 @@ export async function deleteDuplicatesForValues(values?: string[]) {
   valuesToDelete = new Set();
 }
 
-function mapStatementsToTriple(statements: any[]) {
+function mapStatementsToTriple(statements: Statement[]) {
   return statements.map((st) => {
     const object = formatValueForTermType(st.object);
 
@@ -136,7 +137,7 @@ function mapStatementsToTriple(statements: any[]) {
   });
 }
 
-const datatypeNames = {
+const datatypeNames: Record<string, string> = {
   "http://www.w3.org/2001/XMLSchema#dateTime": "dateTime",
   "http://www.w3.org/2001/XMLSchema#datetime": "dateTime",
   "http://www.w3.org/2001/XMLSchema#date": "date",
@@ -146,10 +147,10 @@ const datatypeNames = {
   "http://www.w3.org/2001/XMLSchema#boolean": "bool",
 };
 
-function formatValueForTermType(object) {
-  if (object.termType === "NamedNode") {
+function formatValueForTermType(object: Term) {
+  if (isNamedNode(object)) {
     return sparqlEscapeUri(object.value);
-  } else if (object.termType === "Literal") {
+  } else if (isLiteral(object)) {
     // we can't use the sparqlEscape function because it can for instance add timezones to our
     // datetimes and then they are not considered equal to sparql
     if (

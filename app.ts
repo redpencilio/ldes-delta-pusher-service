@@ -4,7 +4,7 @@ import type { Request, Response } from "express";
 import { app, errorHandler } from "mu";
 import dispatch from "./config/dispatch";
 
-import { Changeset } from "./types";
+import { DeltaChangeset } from "./types";
 import { writeInitialState } from "./writeInitialState";
 
 import { cronjob as autoHealing, manualTrigger } from "./self-healing/cron";
@@ -24,7 +24,7 @@ app.use(
 
 app.post("/publish", async function (req: Request, res: Response) {
   try {
-    const changeSets: Changeset[] = req.body;
+    const changeSets: DeltaChangeset[] = req.body;
     await dispatch(changeSets);
     res.send("Resource added to LDES");
   } catch (e) {

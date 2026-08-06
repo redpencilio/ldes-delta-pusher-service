@@ -1,4 +1,4 @@
-import { querySudo, updateSudo } from "@lblod/mu-auth-sudo";
+import { querySudo, updateSudo, type Binding } from "@lblod/mu-auth-sudo";
 import { sparqlEscapeUri, sparqlEscapeDateTime } from "mu";
 import dispatch from "../config/dispatch";
 import ENV from "../environment";
@@ -6,7 +6,7 @@ import { HealingConfig } from "../config/healing";
 
 export async function healEntities(
   stream: string,
-  config: HealingConfig
+  config: HealingConfig,
 ): Promise<void> {
   const rdfTypes = Object.keys(config[stream].entities);
   for (const type of rdfTypes) {
@@ -17,9 +17,9 @@ export async function healEntities(
 }
 
 async function triggerRecreate(
-  differences,
+  differences: Binding<string[]>[],
   stream: string,
-  config: HealingConfig
+  config: HealingConfig,
 ) {
   const uniqueSubjects = [
     ...new Set<string>(differences.map((difference) => difference.s.value)),
@@ -43,7 +43,7 @@ async function triggerRecreate(
   });
 
   console.log(
-    `Inserting ${inserts.length} triples: ${JSON.stringify(inserts)}`
+    `Inserting ${inserts.length} triples: ${JSON.stringify(inserts)}`,
   );
 
   await dispatch([
@@ -54,12 +54,12 @@ async function triggerRecreate(
   ]);
 }
 
-async function getSubjectTypes(subjects: string[], stream, config) {
+async function getSubjectTypes(subjects: string[], stream: string, config: HealingConfig) {
   let graphFilter = config[stream].graphFilter || "";
   const graphTypesToExclude = config[stream].graphTypesToExclude;
   const excludedGraphs = config[stream].graphsToExclude;
   let excludeGraphsFilter = "";
-  if (excludedGraphs?.length > 0) {
+  if (excludedGraphs && excludedGraphs.length > 0) {
     excludeGraphsFilter = excludedGraphs
       .map((graph: string) => sparqlEscapeUri(graph))
       .join(", ");
@@ -67,7 +67,7 @@ async function getSubjectTypes(subjects: string[], stream, config) {
   }
   let excludeGraphTypesFilter = "";
   let excludeGraphTypeValues = "";
-  if (graphTypesToExclude?.length > 0) {
+  if (graphTypesToExclude && graphTypesToExclude.length > 0) {
     excludeGraphTypeValues = graphTypesToExclude
       .map((type: string) => sparqlEscapeUri(type))
       .join("\n ");
@@ -94,8 +94,12 @@ async function getSubjectTypes(subjects: string[], stream, config) {
 
       ${graphFilter}
     }
-  `
+  `,
   );
+
+  if(!result){
+    return [];
+  }
 
   return result.results.bindings.map((binding) => {
     return {
@@ -108,15 +112,15 @@ async function getSubjectTypes(subjects: string[], stream, config) {
 async function getDifferences(
   type: string,
   stream: string,
-  config: HealingConfig
+  config: HealingConfig,
 ) {
-  const predicates =
-    config[stream].entities[type].healingPredicates ||
-    config[stream].entities[type];
-  const predicateValues = predicates
+  const entities = config[stream].entities[type];
+  const { healingPredicates, instanceFilter, healingFilter } = Array.isArray(entities)
+    ? { healingPredicates: entities, instanceFilter: "", healingFilter: "" }
+    : entities;
+  const predicateValues = healingPredicates
     .map((p: string) => sparqlEscapeUri(p))
     .join("\n");
-  const filter = config[stream].entities[type].instanceFilter || "";
 
   const excludedGraphs = config[stream].graphsToExclude || [];
   excludedGraphs.push(ENV.HEALING_DUMP_GRAPH);
@@ -130,22 +134,20 @@ async function getDifferences(
     .map((graph: string) => sparqlEscapeUri(graph))
     .join("\n");
 
-  const healingFilter = config[stream].entities[type].healingFilter || "";
-
   const missingLdesValues = await getMissingValuesLdes({
     type,
     predicateValues,
-    filter,
+    filter: instanceFilter ?? "",
     graphFilter,
     graphTypesToExclude,
     excludeGraphs,
-    healingFilter,
+    healingFilter: healingFilter ?? "",
   });
   // only looking for missing values on the ldes, excess values bring hard challenges like how did they even get here? should we purge them or is a tombstone enough? were they just not filtered out correctly?
   console.log(
     `Found ${missingLdesValues.length} missing values: ${JSON.stringify(
-      missingLdesValues
-    )}`
+      missingLdesValues,
+    )}`,
   );
   return missingLdesValues;
 }
@@ -231,27 +233,30 @@ async function getMissingValuesLdes(options: {
   const result = await querySudo(
     healingQuery,
     {},
-    { sparqlEndpoint: ENV.DIRECT_DB_ENDPOINT }
+    { sparqlEndpoint: ENV.DIRECT_DB_ENDPOINT },
   );
+  if(!result){
+    return []
+  }
   return result.results.bindings.map((binding) => binding);
 }
 
 async function erectMissingTombstones(
   type: string,
   stream: string,
-  config: HealingConfig
+  config: HealingConfig,
 ) {
   const graphTypesToExclude = config[stream].graphTypesToExclude;
   let graphFilter = config[stream].graphFilter || "";
   const excludedGraphs = config[stream].graphsToExclude;
-  if (excludedGraphs?.length > 0) {
+  if (excludedGraphs && excludedGraphs.length > 0) {
     const toExclude = excludedGraphs
       .map((graph: string) => sparqlEscapeUri(graph))
       .join(", ");
     graphFilter += `FILTER(?g NOT IN (${toExclude}))`;
   }
   let excludeGraphTypeValues = "";
-  if (graphTypesToExclude?.length > 0) {
+  if (graphTypesToExclude && graphTypesToExclude.length > 0) {
     excludeGraphTypeValues = graphTypesToExclude
       .map((type: string) => sparqlEscapeUri(type))
       .join("\n ");
@@ -284,12 +289,12 @@ async function erectMissingTombstones(
       ${where}
     }
   `);
-  if (parseInt(count.results.bindings[0]?.count?.value || "0") < 1) {
+  if (parseInt(count!.results.bindings[0]?.count?.value || "0") < 1) {
     console.log(`No missing tombstones to erect for ${type}`);
     return;
   }
   console.log(
-    `Found ${count.results.bindings[0].count.value} missing tombstones for ${type}. Erecting...`
+    `Found ${count!.results.bindings[0].count.value} missing tombstones for ${type}. Erecting...`,
   );
 
   // we're putting the tombstones into the public graph. we don't know the graph they should have been put in

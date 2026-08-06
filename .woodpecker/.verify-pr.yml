@@ -1,0 +1,12 @@
+steps:
+  install:
+    image: node:20-alpine
+    commands:
+      - npm ci
+  lint:types:
+    image: node:20-alpine
+    depends_on: [install]
+    commands:
+      - npm run lint:types
+when:
+  - event: pull_request

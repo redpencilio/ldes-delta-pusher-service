@@ -1,13 +1,13 @@
 // @ts-ignore
 import { sparqlEscapeUri, sparqlEscape, sparqlEscapeBool } from "mu";
 import ENV from "./environment";
-import { Changeset, Quad, Term } from "./types";
+import { DeltaChangeset, Quad, Term } from "./types";
 import { addData, getConfigFromEnv } from "@lblod/ldes-producer";
 
 const ldesProducerConfig = getConfigFromEnv();
 console.log("ldesProducerConfig", ldesProducerConfig);
 
-const datatypeNames = {
+const datatypeNames: Record<string, string> = {
   "http://www.w3.org/2001/XMLSchema#dateTime": "dateTime",
   "http://www.w3.org/2001/XMLSchema#date": "date",
   "http://www.w3.org/2001/XMLSchema#decimal": "decimal",
@@ -16,7 +16,6 @@ const datatypeNames = {
   "http://www.w3.org/2001/XMLSchema#boolean": "bool",
 };
 const sparqlEscapeObject = (bindingObject: Term): string => {
-
   // Might not be ideal: two ways of anotating language
   //   xml:lang  conforms to https://www.w3.org/TR/sparql11-results-json/
   //   lang      conforms to https://www.w3.org/TR/rdf-json/
@@ -38,10 +37,10 @@ const sparqlEscapeObject = (bindingObject: Term): string => {
     const value =
       bindingObject.value === true ||
       bindingObject.value === 1 ||
-      bindingObject.value?.toLowerCase() === "true";
+      (typeof bindingObject.value === 'string' && bindingObject.value?.toLowerCase() === "true");
     return sparqlEscapeBool(value);
   }
-  return bindingObject.type === "uri"
+  return (bindingObject.type === "uri" && typeof bindingObject.value === 'string')
     ? sparqlEscapeUri(bindingObject.value)
     : sparqlEscape(bindingObject.value, escapeType);
 };
@@ -53,7 +52,7 @@ export function toSparqlTriple(quad: Quad): string {
 }
 
 export async function moveTriples(
-  changesets: Changeset[],
+  changesets: DeltaChangeset[],
   stream = ENV.LDES_FOLDER
 ) {
   let turtleBody = "";

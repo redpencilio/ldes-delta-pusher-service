@@ -1,7 +1,7 @@
 import { moveTriples } from "../support";
-import { Changeset } from "../types";
+import { DeltaChangeset } from "../types";
 
-export default async function dispatch(changesets: Changeset[]) {
+export default async function dispatch(changesets: DeltaChangeset[]) {
 	for (const changeset of changesets) {
 		await moveTriples([
 			{

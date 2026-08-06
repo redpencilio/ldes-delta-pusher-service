@@ -1,5 +1,21 @@
-export type HealingConfig = Awaited<ReturnType<typeof getHealingConfig>>;
-export const getHealingConfig = async () => {
+
+export type HealingConfig = {
+  [key: string]: {
+    graphFilter: string;
+    entities: {
+      [key: string]:
+        | {
+            healingPredicates: string[];
+            instanceFilter?: string;
+            healingFilter?: string;
+          }
+        | string[];
+    };
+    graphsToExclude?: string[];
+    graphTypesToExclude?: string[];
+  };
+};
+export const getHealingConfig: () => Promise<HealingConfig> = async () => {
   return {
     // this is the name of a stream, you can have multiple streams in the config,
     // the healing process will check them one by one sequentially

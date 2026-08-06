@@ -85,6 +85,9 @@ async function hasRemainingEntities() {
     {},
     { sparqlEndpoint: ENV.DIRECT_DB_ENDPOINT }
   );
+  if(!result){
+    return false;
+  }
   const count = parseInt(result.results.bindings[0].count.value);
   console.log(`Remaining entities: ${count}`);
   return count > 0;
