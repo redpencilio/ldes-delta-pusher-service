@@ -269,7 +269,7 @@ async function writeInitialStateForStreamAndType(
         { SELECT DISTINCT ?s ?versionedS WHERE {
           ?s a ${sparqlEscapeUri(type)}.
           GRAPH <http://mu.semte.ch/graphs/ldes-initializer> { ?s ext:versionedUri ?versionedS . }
-        } ORDER BY ?s OFFSET ${offset} LIMIT ${limit}  }
+        } ORDER BY ?s }
 
         GRAPH ?g {
           ?s ?p ?o .
@@ -280,7 +280,7 @@ async function writeInitialStateForStreamAndType(
         ${graphFilter}
 
         ${extraWhere}
-      }`;
+      } OFFSET ${offset} LIMIT ${limit}`;
     console.log(query);
     const res = await executeDirectQuery(query, ttlClient);
 
