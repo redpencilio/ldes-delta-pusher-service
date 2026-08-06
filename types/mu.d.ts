@@ -1,5 +1,5 @@
-declare module 'mu' {
-  import { Express, RequestHandler } from 'express';
+declare module "mu" {
+  import { Express, RequestHandler } from "express";
 
   export type ObjectToBind = Record<string, unknown>;
   export type BindingObject<Obj extends ObjectToBind = ObjectToBind> = {

@@ -1,4 +1,3 @@
-
 export type HealingConfig = {
   [key: string]: {
     graphFilter: string;
@@ -15,7 +14,9 @@ export type HealingConfig = {
     graphTypesToExclude?: string[];
   };
 };
-export const getHealingConfig: () => Promise<HealingConfig> | HealingConfig = () => {
+export const getHealingConfig: () =>
+  | Promise<HealingConfig>
+  | HealingConfig = () => {
   return {
     // this is the name of a stream, you can have multiple streams in the config,
     // the healing process will check them one by one sequentially

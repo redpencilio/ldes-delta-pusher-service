@@ -18,7 +18,7 @@ app.use(
     type: function (req: Request) {
       return /^application\/json/.test(req.get("content-type") as string);
     },
-  })
+  }),
 );
 
 app.post("/publish", async function (req: Request, res: Response) {
@@ -53,7 +53,7 @@ app.get("/checkpoints/:stream", async function (req: Request, res: Response) {
     ttlFileAsContentType(
       `${ENV.DATA_FOLDER}/${stream}/checkpoints.ttl`,
       contentType,
-      ENV.LDES_BASE
+      ENV.LDES_BASE,
     ).pipe(res);
   } catch (e) {
     console.error(e);
@@ -61,19 +61,20 @@ app.get("/checkpoints/:stream", async function (req: Request, res: Response) {
   }
 });
 /**
-* A manual trigger of the auto-healing process. Runs even if the AUTO_HEALING
-* variable is false, for one-off occasions.
-*/
-app.post("/manual-healing", async function(_req: Request, res: Response) {
+ * A manual trigger of the auto-healing process. Runs even if the AUTO_HEALING
+ * variable is false, for one-off occasions.
+ */
+app.post("/manual-healing", async function (_req: Request, res: Response) {
   try {
     await manualTrigger();
-  } catch(e) {
-    console.error(e)
-    res.status(500).send()
+  } catch (e) {
+    console.error(e);
+    res.status(500).send();
   }
-  res.status(200)
-  .send(`Healing succesfully completed at ${new Date().toISOString()}`);
-})
+  res
+    .status(200)
+    .send(`Healing succesfully completed at ${new Date().toISOString()}`);
+});
 
 new Promise(async (resolve) => {
   if (process.env.WRITE_INITIAL_STATE === "true") {

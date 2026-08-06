@@ -54,7 +54,11 @@ async function triggerRecreate(
   ]);
 }
 
-async function getSubjectTypes(subjects: string[], stream: string, config: HealingConfig) {
+async function getSubjectTypes(
+  subjects: string[],
+  stream: string,
+  config: HealingConfig,
+) {
   let graphFilter = config[stream].graphFilter || "";
   const graphTypesToExclude = config[stream].graphTypesToExclude;
   const excludedGraphs = config[stream].graphsToExclude;
@@ -97,7 +101,7 @@ async function getSubjectTypes(subjects: string[], stream: string, config: Heali
   `,
   );
 
-  if(!result){
+  if (!result) {
     return [];
   }
 
@@ -115,7 +119,9 @@ async function getDifferences(
   config: HealingConfig,
 ) {
   const entities = config[stream].entities[type];
-  const { healingPredicates, instanceFilter, healingFilter } = Array.isArray(entities)
+  const { healingPredicates, instanceFilter, healingFilter } = Array.isArray(
+    entities,
+  )
     ? { healingPredicates: entities, instanceFilter: "", healingFilter: "" }
     : entities;
   const predicateValues = healingPredicates
@@ -235,8 +241,8 @@ async function getMissingValuesLdes(options: {
     {},
     { sparqlEndpoint: ENV.DIRECT_DB_ENDPOINT },
   );
-  if(!result){
-    return []
+  if (!result) {
+    return [];
   }
   return result.results.bindings.map((binding) => binding);
 }

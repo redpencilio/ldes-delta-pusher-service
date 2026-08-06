@@ -12,19 +12,19 @@ export async function clearHealingTempGraphs(): Promise<void> {
     {},
     {
       sparqlEndpoint: ENV.DIRECT_DB_ENDPOINT,
-    }
+    },
   );
   await updateSudo(
     `DROP SILENT GRAPH <${ENV.HEALING_TRANSFORMED_GRAPH}>`,
     {},
     {
       sparqlEndpoint: ENV.DIRECT_DB_ENDPOINT,
-    }
+    },
   );
 }
 
 export async function insertLdesPageToDumpGraph(
-  turtleText: string
+  turtleText: string,
 ): Promise<string[]> {
   const tripleStore = new ForkingStore();
   const graph = new NamedNode("http://data.lblod.info/triples");
@@ -99,7 +99,7 @@ export async function deleteDuplicatesForValues(values?: string[]) {
     }
   `,
     {},
-    { sparqlEndpoint: ENV.DIRECT_DB_ENDPOINT }
+    { sparqlEndpoint: ENV.DIRECT_DB_ENDPOINT },
   );
 
   await updateSudo(
@@ -121,7 +121,7 @@ export async function deleteDuplicatesForValues(values?: string[]) {
       }
     }`,
     {},
-    { sparqlEndpoint: ENV.DIRECT_DB_ENDPOINT }
+    { sparqlEndpoint: ENV.DIRECT_DB_ENDPOINT },
   );
 
   valuesToDelete = new Set();
@@ -132,7 +132,7 @@ function mapStatementsToTriple(statements: Statement[]) {
     const object = formatValueForTermType(st.object);
 
     return `${sparqlEscapeUri(st.subject.value)} ${sparqlEscapeUri(
-      st.predicate.value
+      st.predicate.value,
     )} ${object} .`;
   });
 }
@@ -162,7 +162,7 @@ function formatValueForTermType(object: Term) {
     if (object.datatype) {
       return `${sparqlEscape(
         object.value,
-        datatypeNames[object.datatype.value] || "string"
+        datatypeNames[object.datatype.value] || "string",
       )}`;
     } else if (object.language) {
       return `${sparqlEscapeString(object.value)}@${object.language}`;
@@ -184,6 +184,6 @@ async function addTriplesToLDesDumpGraph(triples: string) {
       }
     `,
     {},
-    { sparqlEndpoint: ENV.DIRECT_DB_ENDPOINT, mayRetry: true }
+    { sparqlEndpoint: ENV.DIRECT_DB_ENDPOINT, mayRetry: true },
   );
 }

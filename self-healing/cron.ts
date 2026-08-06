@@ -83,7 +83,7 @@ async function fetchPage(stream: string, page: number): Promise<string | null> {
     });
     return await text(response.stream);
   } catch (e: unknown) {
-    if (e && typeof e === 'object' && 'status' in e && e.status === 404) {
+    if (e && typeof e === "object" && "status" in e && e.status === 404) {
       console.log(
         `Page ${page} not found, assuming it's the last page of the stream`,
       );
@@ -123,9 +123,12 @@ async function determineFirstPageOrCheckpoint(
       );
     });
     filteredCheckpoints.sort((a, b) =>
-      new Date(a[modified]![0]['@value']) < new Date(b[modified]![0]['@value']) ? 1 : -1,
+      new Date(a[modified]![0]["@value"]) < new Date(b[modified]![0]["@value"])
+        ? 1
+        : -1,
     );
-    const checkpointName = filteredCheckpoints[0]["@id"].split("checkpoints/")[1];
+    const checkpointName =
+      filteredCheckpoints[0]["@id"].split("checkpoints/")[1];
     const checkpointFolderName = checkpointName.split("/")[0];
     return { path: `${stream}/checkpoints/${checkpointFolderName}`, file: 1 };
   } catch {
