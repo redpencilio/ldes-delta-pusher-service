@@ -2,7 +2,7 @@
 import ttl_read from "@graphy/content.ttl.read";
 import fs from "fs";
 import path from "path";
-import rdfParser from "rdf-parse";
+import { rdfParser } from "rdf-parse";
 
 import ENV from "../environment";
 import { rdfSerializer } from "rdf-serialize";
@@ -12,7 +12,7 @@ import { rdfSerializer } from "rdf-serialize";
  *
  * @param {string} file File path where the turtle file is stored.
  * @return {Stream} Stream containing all triples which were downloaded.
- */
+ */ 
 
 export function ttlFileAsContentType(
   file: string,
