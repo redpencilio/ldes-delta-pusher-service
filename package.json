@@ -14,13 +14,13 @@
     "forking-store": "^2.3.0",
     "node-fetch": "^2.6.7",
     "rdf-parse": "^4.0.0",
-    "rdflib": "^2.2.35",
     "rdf-serialize": "^5.1.0",
+    "rdflib": "^2.2.35",
     "sparql-client-2": "https://github.com/erikap/node-sparql-client.git",
     "zod": "^4.3.6"
   },
   "scripts": {
-    "lint": "concurrently \"pnpm:lint:*(!fix)\" --names \"lint:\"",
+    "lint": "concurrently \"npm:lint:*(!fix)\" --names \"lint:\"",
     "lint:types": "tsc",
     "release": "release-it"
   },
@@ -31,6 +31,7 @@
     "@types/node": "^20.19.37",
     "@types/node-fetch": "^2.6.2",
     "@types/uuid": "^10.0.0",
+    "concurrently": "^10.0.4",
     "release-it": "^15.6.0",
     "typescript": "^6.0.2"
   },
