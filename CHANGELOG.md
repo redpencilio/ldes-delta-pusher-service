@@ -1,3 +1,13 @@
+## 1.2.15 (2026-08-06)
+
+#### :bug: Bug Fix
+
+- [#44](https://github.com/redpencilio/ldes-delta-pusher-service/pull/44) update rdf-parse package to version 4.0.0 to fix import issue ([@elpoelma](https://github.com/elpoelma))
+
+#### Committers: 1
+
+- Elena Poelman ([@elpoelma](https://github.com/elpoelma))
+
 ## 1.2.11 (2026-03-12)
 
 #### :bug: Bug Fix
