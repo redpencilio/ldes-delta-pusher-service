@@ -5,7 +5,7 @@ import httpContext from "express-http-context";
 import fs from "fs";
 import { initialization } from "./config/initialization";
 import { v4 as uuid } from "uuid";
-import { querySudo } from "@lblod/mu-auth-sudo";
+import { querySudo, updateSudo } from "@lblod/mu-auth-sudo";
 import ENV from "./environment";
 import { CronJob } from "cron";
 import { LDES } from "@lblod/ldes-producer";
@@ -57,35 +57,62 @@ async function generateVersionedUris(
   filter: string,
   graphFilter: string,
 ) {
-  // filtering here makes it way easier later on. we should simply consider all instances of the type with a versioned uri
-  // because the filter has already been applied to those instances
-  const query = `
-    PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
+  const BATCH_SIZE = 1000;
 
-    INSERT {
-      GRAPH <http://mu.semte.ch/graphs/ldes-initializer> {
-        ?s ext:versionedUri ?versionedUri .
-      }
-    } WHERE {
-      {
+  let itemsLeft = true;
+  while (itemsLeft) {
+    const query = `
+        PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
         SELECT DISTINCT ?s WHERE {
           GRAPH ?g {
             ?s a ${sparqlEscapeUri(type)}.
           }
           ${filter}
           ${graphFilter}
-        }
+
+          FILTER NOT EXISTS {
+            GRAPH <http://mu.semte.ch/graphs/ldes-initializer> {
+              ?s ext:versionedUri ?versionedUri .
+            }
+          }
+        } LIMIT ${BATCH_SIZE}
+    `;
+    console.log(query);
+    const results = await querySudo(
+      query,
+      {},
+      { sparqlEndpoint: ENV.DIRECT_DB_ENDPOINT },
+    );
+    const ids = [];
+    for (const result of results.results.bindings) {
+      ids.push({
+        s: result.s.value,
+        versionedUri: `http://mu.semte.ch/services/ldes-time-fragmenter/versioned/${uuid()}`,
+      });
+    }
+    if (ids.length === 0) {
+      itemsLeft = false;
+    } else {
+      await addVersionedUris(ids);
+    }
+  }
+  console.log("generated versioned uris");
+}
+
+async function addVersionedUris(ids: { s: string; versionedUri: string }[]) {
+  const triples = ids.map((id) => {
+    return `${sparqlEscapeUri(id.s)} ext:versionedUri ${sparqlEscapeUri(id.versionedUri)} .`;
+  });
+  const query = `
+    PREFIX ext: <http://mu.semte.ch/vocabularies/ext/>
+    INSERT DATA {
+      GRAPH <http://mu.semte.ch/graphs/ldes-initializer> {
+        ${triples.join("\n")}
       }
-      OPTIONAL {
-        ?s ext:fakeUuidPredAsWeWantSomethingNew ?fakeUuid.
-      }
-      BIND(IF(BOUND(?fakeUuid), ?fakeUuid, STRUUID()) as ?id)
-      BIND(URI(CONCAT("http://mu.semte.ch/services/ldes-time-fragmenter/versioned/", ?id)) as ?versionedUri)
     }
   `;
-  console.log(query);
-  await executeDirectQuery(query, ttlClient);
-  console.log("generated versioned uris");
+  console.log(`inserted ${ids.length} versioned uris`);
+  await updateSudo(query, {}, { sparqlEndpoint: ENV.DIRECT_DB_ENDPOINT });
 }
 
 async function cleanupVersionedUris() {
