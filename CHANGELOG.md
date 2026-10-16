@@ -1,5 +1,10 @@
+## 1.3.0 (2026-10-16)
 
+#### :bug: Bug Fix
+* [#46](https://github.com/redpencilio/ldes-delta-pusher-service/pull/46) fix assigning versioned uris at initial load and checkpoint ([@Rahien](https://github.com/Rahien))
 
+#### Committers: 1
+- Karel Kremer ([@Rahien](https://github.com/Rahien))
 
 ## 1.2.15 (2026-08-06)
 
